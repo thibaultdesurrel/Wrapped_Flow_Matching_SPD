@@ -13,6 +13,7 @@ dependencies = [
     "numpy>=2.4.3",
     "rich>=14.3.3",
     "spd-learn>=0.1.0",
+    "tensorboard>=2.20.0",
     "torch>=2.10.0",
     "torchcfm>=1.0.7",
 ]
