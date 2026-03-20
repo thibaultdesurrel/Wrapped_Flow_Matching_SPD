@@ -13,6 +13,7 @@ Import from the specific module for new code.
 from cfm_models.cfm_base import CFMBase  # noqa: F401
 
 # from cfm_models.wgcfm import WGCFM  # noqa: F401
-# from cfm_models.geodesic_cfm import GeodesicCFM  # noqa: F401
+from cfm_models.geodesic_cfm import GeodesicCFM  # noqa: F401
+
 # from cfm_models.tangent_cfm import Tangent_CFM  # noqa: F401
 from cfm_models.euclidean_cfm import EuclideanCFM  # noqa: F401
