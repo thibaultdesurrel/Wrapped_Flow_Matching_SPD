@@ -4,6 +4,8 @@ from pathlib import Path
 # Ensure runner/src is on the Python path so Hydra can resolve targets
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import time
+
 import hydra
 from omegaconf import DictConfig
 from lightning.pytorch import Trainer, seed_everything
@@ -18,8 +20,8 @@ def main(cfg: DictConfig):
     seed_everything(cfg.seed)
 
     # Instantiate backbone
-    log.info(f"Instantiating net <{cfg.net._target_}>")
-    net = hydra.utils.instantiate(cfg.net)
+    log.info(f"Instantiating net <{cfg.model.net._target_}>")
+    net = hydra.utils.instantiate(cfg.model.net)
 
     # Resolve the optimizer partial so the model can call it directly
     optimizer_partial = hydra.utils.instantiate(cfg.model.optimizer)
@@ -57,7 +59,12 @@ def main(cfg: DictConfig):
 
     if cfg.get("train"):
         log.info("Starting training!")
+        t0 = time.time()
         trainer.fit(model=model, datamodule=datamodule)
+        elapsed = time.time() - t0
+        log.info(f"Training finished in {elapsed:.1f}s")
+        with open("training_time.log", "w") as f:
+            f.write(f"{elapsed:.1f}s\n")
 
     if cfg.get("test"):
         log.info("Starting testing!")

@@ -1,13 +1,15 @@
 defaults:
   - _self_
   - datamodule: BNCI2014002
+  - model: euclidean_cfm
   - callbacks: default
   - trainer: default
-  - logger: 
+  - logger:
     - csv
     - tensorboard
   - paths: default
   - hydra: default
+  - experiment: null
   - debug: null
 
 seed: 42
@@ -19,25 +21,6 @@ train: True
 # lightning chooses best weights based on the metric specified in checkpoint callback
 test: True
 
-# ---- model ----
-model:
-  _target_: cfm_models.euclidean_cfm.EuclideanCFM
-  dtype: float64
-  num_classes: 2
-  dim: 15
-  lr: 1e-3
-  factor_lr: 0.01
-  warmup_epochs: 10
-  epochs: 200
-  optimizer:
-    _target_: torch.optim.AdamW
-    _partial_: true
-
-# ---- backbone ----
-net:
-  _target_: backbones.mlp_simple.MLP
-  input_dim: 120      # dim*(dim+1)/2 = 15*16/2
-  cond_dim: 2        # num_classes
-  n_layers: 3
-  hidden_dim: 128
-  dtype: float64
+# experiment name, used for output directory
+experiment:
+  name: "default"

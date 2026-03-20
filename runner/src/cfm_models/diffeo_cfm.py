@@ -10,8 +10,6 @@ points are mapped to the tangent space at I_d via Log, then Euclidean CFM
 is run in that flat space, and results are mapped back via Exp.
 """
 
-from re import M
-
 import torch
 
 from cfm_models.euclidean_cfm import EuclideanCFM
