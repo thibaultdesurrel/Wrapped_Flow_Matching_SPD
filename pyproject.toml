@@ -11,6 +11,7 @@ dependencies = [
     "matplotlib>=3.10.8",
     "moabb>=1.4.3",
     "numpy>=2.4.3",
+    "prdc>=0.2",
     "rich>=14.3.3",
     "spd-learn>=0.1.0",
     "tensorboard>=2.20.0",

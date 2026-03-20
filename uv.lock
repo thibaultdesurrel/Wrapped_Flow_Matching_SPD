@@ -1941,6 +1941,21 @@ wheels = [
 ]
 
 [[package]]
+name = "prdc"
+version = "0.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "joblib" },
+    { name = "numpy" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/16/3f/85c603c872ca28c870f1bd54bbe7020f5921efc1c04a9db32b75cf0c287c/prdc-0.2.tar.gz", hash = "sha256:247466c31743f334a2714dbd60ef62e523877c4162ddb7dc63a404cada09316f", size = 5253, upload-time = "2020-02-25T04:54:58.478Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/53/9b/e4731da221e9d502fb4e7531787d9b24d1791ff86a0d207dd2505ff485fc/prdc-0.2-py3-none-any.whl", hash = "sha256:570ae82fb57a0b0ea3e6a131354a61e23aca79716b77cb9917f3a98465b72120", size = 5956, upload-time = "2020-02-25T04:54:56.835Z" },
+]
+
+[[package]]
 name = "prompt-toolkit"
 version = "3.0.52"
 source = { registry = "https://pypi.org/simple" }
@@ -2466,6 +2481,7 @@ dependencies = [
     { name = "matplotlib" },
     { name = "moabb" },
     { name = "numpy" },
+    { name = "prdc" },
     { name = "rich" },
     { name = "spd-learn" },
     { name = "tensorboard" },
@@ -2486,6 +2502,7 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.10.8" },
     { name = "moabb", specifier = ">=1.4.3" },
     { name = "numpy", specifier = ">=2.4.3" },
+    { name = "prdc", specifier = ">=0.2" },
     { name = "rich", specifier = ">=14.3.3" },
     { name = "spd-learn", specifier = ">=0.1.0" },
     { name = "tensorboard", specifier = ">=2.20.0" },
