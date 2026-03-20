@@ -12,7 +12,9 @@ class ProjectToTangent(nn.Module):
         super().__init__()
         self.vecfield = vecfield
 
-    def forward(self, x, t, y):
+    def forward(
+        self, x: torch.Tensor, t: torch.Tensor, y: torch.Tensor
+    ) -> torch.Tensor:
 
         x = clamp_eigvals.apply(x, 1e-5)
         v = self.vecfield(x, t, y)
@@ -44,7 +46,7 @@ class TimeDependentSwish(nn.Module):
             nn.Softplus(),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         t = x[:, -1].reshape(-1, 1)
         beta = self.beta(t)
         return x * torch.sigmoid(x * beta)

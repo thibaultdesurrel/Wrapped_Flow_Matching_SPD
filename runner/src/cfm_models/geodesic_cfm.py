@@ -15,8 +15,7 @@ from torch.func import jvp
 
 from cfm_models.cfm_base import CFMBase
 from solver.riemannian_ode_solver import RiemannianODESolver
-from spd_learn.functional import airm_geodesic
-from utils.spd_ops import airm_inner_product
+from utils.spd_ops import airm_geodesic, airm_inner_product
 from backbones.common import ProjectToTangent
 
 

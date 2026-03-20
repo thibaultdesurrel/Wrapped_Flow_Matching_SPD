@@ -8,15 +8,15 @@ class RiemannianODESolver:
     def __init__(self, net):
         self.net = net
 
-    def sample(self, x0, y):
+    def sample(self, x0: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Solve the CFM for a given x0."""
         time_grid = torch.linspace(0, 1, 2, device=x0.device, dtype=x0.dtype)
 
-        def ode_func(t, x):
+        def ode_func(t: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
             if y is not None:
-                return self.velocity(x, t, y)
+                return self.net(x, t, y)
             else:
-                return self.velocity(x, t)
+                return self.net(x, t)
 
         sol = odeint(
             ode_func,
