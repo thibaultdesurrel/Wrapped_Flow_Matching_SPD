@@ -9,14 +9,14 @@ and MSE (Frobenius) loss.
 
 import torch
 
-from src.cfm_models.cfm_base import CFMBase
-from src.solver.euclidean_ode_solver import EuclideanODESolver
+from cfm_models.cfm_base import CFMBase
+from solver.euclidean_ode_solver import EuclideanODESolver
 from torchcfm.conditional_flow_matching import TargetConditionalFlowMatcher
 
 
 class EuclideanCFM(CFMBase):
-    def __init__(self, cfg, net):
-        super().__init__(cfg, net)
+    def __init__(self, cfg, net, optimizer=None):
+        super().__init__(cfg, net, optimizer)
         self.fm = TargetConditionalFlowMatcher()
 
     def step(self, batch):

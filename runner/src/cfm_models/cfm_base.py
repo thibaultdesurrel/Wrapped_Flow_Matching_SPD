@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 import math
 from lightning.pytorch import LightningModule
-from src.utils.sampling_wrapped_gaussian import sample_wrapped_gaussian
+from utils import sample_wrapped_gaussian
 
 DTYPE_MAP = {
     "float32": torch.float32,
@@ -21,11 +21,12 @@ DTYPE_MAP = {
 
 
 class CFMBase(LightningModule):
-    def __init__(self, cfg, net):
+    def __init__(self, cfg, net, optimizer=None):
         super().__init__()
         self.cfg = cfg
         self.net = net
-        self.dtype: torch.dtype = DTYPE_MAP[self.cfg.dtype]
+        self.optimizer_cls = optimizer
+        self.data_dtype: torch.dtype = DTYPE_MAP[self.cfg.dtype]
         self.num_classes: int = self.cfg.num_classes
         self.dim: int = self.cfg.dim
 
@@ -35,25 +36,25 @@ class CFMBase(LightningModule):
     def preprocess_batch(self, batch):
 
         # Get the x1 and labels from the batch
-        x1 = batch.x1.to(self.dtype)
+        x1 = batch.x1.to(self.data_dtype)
         labels = batch.labels
 
         # Convert the labels to one-hot encoding
-        labels = F.one_hot(labels, num_classes=self.num_classes).to(self.dtype)
+        labels = F.one_hot(labels, num_classes=self.num_classes).to(self.data_dtype)
 
         batch_size = x1.shape[0]
         dim = x1.shape[1]
         assert dim == self.dim, f"Expected input dimension {self.dim}, but got {dim}"
 
         # Sample the random time steps for each sample in the batch
-        t = torch.rand(batch_size, dtype=self.dtype, device=x1.device)
+        t = torch.rand(batch_size, dtype=self.data_dtype, device=x1.device)
 
         # Sample x0
         dim_TS = self.dim * (self.dim + 1) // 2
-        p0 = torch.eye(dim, dtype=self.dtype, device=x1.device)
-        mu0 = torch.zeros(dim_TS, dtype=self.dtype, device=x1.device)
+        p0 = torch.eye(dim, dtype=self.data_dtype, device=x1.device)
+        mu0 = torch.zeros(dim_TS, dtype=self.data_dtype, device=x1.device)
         sigma0 = (self.sigma_init**2) * torch.eye(
-            dim_TS, dtype=self.dtype, device=x1.device
+            dim_TS, dtype=self.data_dtype, device=x1.device
         )
         x0 = sample_wrapped_gaussian(batch_size, p0, mu0, sigma0)
 
@@ -65,7 +66,7 @@ class CFMBase(LightningModule):
         WARMUP_EPOCHS = self.cfg.warmup_epochs
         EPOCHS = self.cfg.epochs
 
-        optimizer = self.cfg.optimizer(self.parameters(), lr=LR, weight_decay=0)
+        optimizer = self.optimizer_cls(self.parameters(), lr=LR, weight_decay=0)
         scheduler = torch.optim.lr_scheduler.SequentialLR(
             optimizer,
             schedulers=[

@@ -4,7 +4,7 @@ from sklearn.preprocessing import LabelEncoder
 from moabb.datasets import BNCI2014_002
 from moabb.paradigms import MotorImagery
 
-from src.datamodules.base_datamodule import BaseEEGDataModule
+from datamodules.base_datamodule import BaseEEGDataModule
 
 
 class BNCI2014002DataModule(BaseEEGDataModule):

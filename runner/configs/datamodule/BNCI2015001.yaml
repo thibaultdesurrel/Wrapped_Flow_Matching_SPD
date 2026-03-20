@@ -1,4 +1,4 @@
-_target_: src.datamodules.BNCI2015001.BNCI2015001DataModule
+_target_: datamodules.BNCI2015001.BNCI2015001DataModule
 test_group_idx: 0
 batch_size: 64
 num_workers: 0

@@ -3,6 +3,11 @@ from torch import nn
 
 from spd_learn.functional import sym_to_upper, vec_to_sym
 
+DTYPE_MAP = {
+    "float32": torch.float32,
+    "float64": torch.float64,
+}
+
 
 class MLP(nn.Module):
     """
@@ -22,18 +27,25 @@ class MLP(nn.Module):
         self.input_dim = input_dim
         self.cond_dim = cond_dim
         self.time_emb_dim = time_dim
-        self.dtype = dtype
+        if isinstance(dtype, str):
+            self.dtype = DTYPE_MAP[dtype]
+        else:
+            self.dtype = dtype
         self.hidden_dim = hidden_dim
 
         layers = []
         layers.append(
-            nn.Linear(input_dim + cond_dim + time_dim, hidden_dim, dtype=dtype)
+            nn.Linear(
+                self.input_dim + self.cond_dim + self.time_emb_dim,
+                self.hidden_dim,
+                dtype=self.dtype,
+            )
         )
         layers.append(nn.SELU())
         for i in range(n_layers - 1):
-            layers.append(nn.Linear(hidden_dim, hidden_dim, dtype=dtype))
+            layers.append(nn.Linear(self.hidden_dim, self.hidden_dim, dtype=self.dtype))
             layers.append(nn.SELU())
-        layers.append(nn.Linear(hidden_dim, input_dim, dtype=dtype))
+        layers.append(nn.Linear(self.hidden_dim, self.input_dim, dtype=self.dtype))
 
         self.net = nn.Sequential(*layers)
 
