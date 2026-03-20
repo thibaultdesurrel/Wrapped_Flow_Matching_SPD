@@ -1,0 +1,21 @@
+# @package _global_
+
+# default debugging setup, runs 1 full epoch on CPU with anomaly detection
+# usage: uv run src/train.py debug=default
+
+callbacks: null
+logger: null
+
+hydra:
+  job_logging:
+    root:
+      level: INFO
+    loggers:
+      lightning.pytorch:
+        level: DEBUG
+
+trainer:
+  max_epochs: 1
+  accelerator: cpu
+  devices: 1
+  detect_anomaly: true

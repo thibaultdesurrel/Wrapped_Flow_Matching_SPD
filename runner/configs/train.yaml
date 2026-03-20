@@ -1,9 +1,12 @@
 defaults:
   - _self_
   - datamodule: BNCI2014002
+  - callbacks: default
   - trainer: default
-  - logger: csv       # note: logger configs use a nested key (e.g. csv:)
+  - logger: csv
   - paths: default
+  - hydra: default
+  - debug: null
 
 seed: 42
 

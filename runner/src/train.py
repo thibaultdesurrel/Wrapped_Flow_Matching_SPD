@@ -34,17 +34,39 @@ def main(cfg: DictConfig):
     log.info(f"Instantiating datamodule <{cfg.datamodule._target_}>")
     datamodule = hydra.utils.instantiate(cfg.datamodule)
 
-    # Instantiate loggers (config may define multiple under named keys)
-    loggers = [hydra.utils.instantiate(lg) for lg in cfg.logger.values()]
+    # Instantiate callbacks (can be null in debug mode)
+    callbacks = (
+        [hydra.utils.instantiate(cb) for cb in cfg.callbacks.values()]
+        if cfg.get("callbacks")
+        else []
+    )
+
+    # Instantiate loggers (can be null in debug mode)
+    loggers = (
+        [hydra.utils.instantiate(lg) for lg in cfg.logger.values()]
+        if cfg.get("logger")
+        else []
+    )
 
     # Instantiate trainer
     trainer: Trainer = hydra.utils.instantiate(
         cfg.trainer,
+        callbacks=callbacks,
         logger=loggers,
     )
 
-    log.info("Starting training!")
-    trainer.fit(model=model, datamodule=datamodule)
+    if cfg.get("train"):
+        log.info("Starting training!")
+        trainer.fit(model=model, datamodule=datamodule)
+
+    if cfg.get("test"):
+        log.info("Starting testing!")
+        ckpt_path = trainer.checkpoint_callback.best_model_path
+        if ckpt_path == "":
+            log.warning("Best ckpt not found! Using current weights for testing...")
+            ckpt_path = None
+        trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
+        log.info(f"Best ckpt path: {ckpt_path}")
 
 
 if __name__ == "__main__":

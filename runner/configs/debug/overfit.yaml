@@ -1,0 +1,13 @@
+# @package _global_
+
+# overfit to 3 batches — sanity check that the model can memorize
+# usage: uv run src/train.py debug=overfit
+
+defaults:
+  - default.yaml
+
+trainer:
+  max_epochs: 20
+  overfit_batches: 3
+
+callbacks: null
