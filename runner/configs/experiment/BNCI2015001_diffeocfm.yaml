@@ -16,7 +16,6 @@ model:
   lr: 1e-3
   factor_lr: 0.1
   warmup_epochs: 10
-  epochs: 2000
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
