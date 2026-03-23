@@ -11,18 +11,33 @@ import torch
 
 from cfm_models.cfm_base import CFMBase
 from solver.euclidean_ode_solver import EuclideanODESolver
-from torchcfm.conditional_flow_matching import TargetConditionalFlowMatcher
 
 
 class EuclideanCFM(CFMBase):
     def __init__(self, cfg, net, optimizer=None):
         super().__init__(cfg, net, optimizer)
-        self.fm = TargetConditionalFlowMatcher()
+
+    def _expand_t(self, t, x):
+        """Reshape t from (B,) to broadcast with x of shape (B, ..., ...)."""
+        return t.reshape(t.shape[0], *([1] * (x.ndim - 1)))
+
+    def sample_xt(self, x0, x1, t):
+        t_ = self._expand_t(t, x0)
+        sigma_t = self.sigma_init - (self.sigma_init - self.sigma_min) * t_
+        return (sigma_t / self.sigma_init) * x0 + t_ * x1
+
+    def ut_cond(self, xt, x1, t):
+        t_ = self._expand_t(t, xt)
+        sigma_t = self.sigma_init - (self.sigma_init - self.sigma_min) * t_
+        sigma_t_prime = -(self.sigma_init - self.sigma_min)
+        return (sigma_t_prime / sigma_t) * (xt - t_ * x1) + x1
 
     def step(self, batch):
         x0, x1, t, labels = self.preprocess_batch(batch)
-        t, xt, ut = self.fm.sample_location_and_conditional_flow(x0, x1, t)
+
+        xt = self.sample_xt(x0, x1, t)
         vt = self.forward(xt, t, labels)
+        ut = self.ut_cond(xt, x1, t)
 
         loss = self.criterion(vt, ut)
         return loss, vt, ut

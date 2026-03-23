@@ -31,6 +31,7 @@ class CFMBase(LightningModule):
         self.dim: int = self.cfg.dim
 
         self.sigma_init: float = 1.0 / math.sqrt(self.dim * (self.dim + 1) / 2)
+        self.sigma_min: float = 0.0
         self.criterion = torch.nn.MSELoss()
 
     def sample_x0(self, batch_size):

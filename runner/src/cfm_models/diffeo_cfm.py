@@ -29,10 +29,9 @@ class DiffeoCFM(EuclideanCFM):
         x1_tangent = matrix_log.apply(x1)
 
         # Run Euclidean CFM in the tangent space
-        t, xt, ut = self.fm.sample_location_and_conditional_flow(
-            x0_tangent, x1_tangent, t
-        )
-        vt = self.forward(xt, t, labels)
+        xt_tangent = self.sample_xt(x0_tangent, x1_tangent, t)
+        vt = self.forward(xt_tangent, t, labels)
+        ut = self.ut_cond(xt_tangent, x1_tangent, t)
 
         loss = self.criterion(vt, ut)
         return loss, vt, ut

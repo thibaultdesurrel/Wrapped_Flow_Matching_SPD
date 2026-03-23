@@ -18,10 +18,13 @@ dependencies = [
     "spd-learn>=0.1.0",
     "tensorboard>=2.20.0",
     "torch>=2.10.0",
-    "torchcfm>=1.0.7",
+    "umap-learn>=0.5.11",
 ]
 
 [dependency-groups]
 dev = [
     "ty>=0.0.24",
 ]
+
+[tool.ruff.format]
+exclude = ["*.ipynb"]

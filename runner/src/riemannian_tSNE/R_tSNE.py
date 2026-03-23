@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from runner.src.riemannian_tSNE.utils_R_tSNE import (
+from src.riemannian_tSNE.utils_R_tSNE import (
     pga,
     pairwise_distance,
     pairwise_distance_sq_2x2,
