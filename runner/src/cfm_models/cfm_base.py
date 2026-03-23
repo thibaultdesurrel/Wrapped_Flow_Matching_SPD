@@ -33,6 +33,16 @@ class CFMBase(LightningModule):
         self.sigma_init: float = 1.0 / math.sqrt(self.dim * (self.dim + 1) / 2)
         self.criterion = torch.nn.MSELoss()
 
+    def sample_x0(self, batch_size):
+        dim_TS = self.dim * (self.dim + 1) // 2
+        p0 = torch.eye(self.dim, dtype=self.data_dtype, device=self.device)
+        mu0 = torch.zeros(dim_TS, dtype=self.data_dtype, device=self.device)
+        sigma0 = (self.sigma_init**2) * torch.eye(
+            dim_TS, dtype=self.data_dtype, device=self.device
+        )
+        x0 = sample_wrapped_gaussian(batch_size, p0, mu0, sigma0)
+        return x0
+
     def preprocess_batch(self, batch):
 
         # Get the x1 and labels from the batch
@@ -50,14 +60,7 @@ class CFMBase(LightningModule):
         t = torch.rand(batch_size, dtype=self.data_dtype, device=x1.device)
 
         # Sample x0
-        dim_TS = self.dim * (self.dim + 1) // 2
-        p0 = torch.eye(dim, dtype=self.data_dtype, device=x1.device)
-        mu0 = torch.zeros(dim_TS, dtype=self.data_dtype, device=x1.device)
-        sigma0 = (self.sigma_init**2) * torch.eye(
-            dim_TS, dtype=self.data_dtype, device=x1.device
-        )
-        x0 = sample_wrapped_gaussian(batch_size, p0, mu0, sigma0)
-
+        x0 = self.sample_x0(batch_size)
         return x0, x1, t, labels
 
     def configure_optimizers(self):

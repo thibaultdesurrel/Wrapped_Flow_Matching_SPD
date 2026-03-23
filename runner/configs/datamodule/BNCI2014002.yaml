@@ -4,4 +4,4 @@ batch_size: 64
 num_workers: 0
 seed: 42
 dtype: float64
-recenter: false
+recenter: true

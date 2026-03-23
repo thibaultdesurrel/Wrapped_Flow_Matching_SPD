@@ -67,7 +67,8 @@ class BaseDataModule(LightningDataModule):
         inv_sqrt_mean = invsqrtm(X_bar)
 
         if scale:
-            var_frechet = np.mean(distance_riemann(X_fit, X_bar) ** 2)
+            X_bar_broadcast = np.broadcast_to(X_bar, X_fit.shape)
+            var_frechet = np.mean(distance_riemann(X_fit, X_bar_broadcast) ** 2)
             power = 1.0 / np.sqrt(var_frechet)
 
         results = []

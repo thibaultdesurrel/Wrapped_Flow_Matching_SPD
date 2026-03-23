@@ -23,7 +23,6 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 from lightning.pytorch import seed_everything
-from omegaconf import OmegaConf
 from pyriemann.tangentspace import TangentSpace
 from sklearn.linear_model import LogisticRegressionCV
 from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
@@ -31,6 +30,7 @@ from sklearn.pipeline import make_pipeline
 from prdc import compute_prdc
 
 from utils import sample_wrapped_gaussian
+from utils.loading import load_model
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
@@ -179,37 +179,12 @@ def main():
 
     run_dir = args.run_dir.resolve()
 
-    # --- Load config from the training run ---
-    config_path = run_dir / ".hydra" / "config.yaml"
-    if not config_path.exists():
-        log.error(f"Config not found: {config_path}")
-        sys.exit(1)
-
-    cfg = OmegaConf.load(config_path)
-    log.info(f"Loaded config from {config_path}")
+    # --- Load model and config ---
+    ckpt = run_dir / "checkpoints" / args.ckpt if args.ckpt else run_dir
+    model, cfg = load_model(ckpt)
+    log.info(f"Loaded model from {run_dir}")
 
     seed_everything(cfg.seed)
-
-    # --- Find checkpoint ---
-    ckpt_dir = run_dir / "checkpoints"
-    if args.ckpt:
-        ckpt_path = ckpt_dir / args.ckpt
-    else:
-        # Find best checkpoint (not last.ckpt)
-        ckpts = sorted([p for p in ckpt_dir.glob("*.ckpt") if p.name != "last.ckpt"])
-        if ckpts:
-            ckpt_path = ckpts[-1]
-        elif (ckpt_dir / "last.ckpt").exists():
-            ckpt_path = ckpt_dir / "last.ckpt"
-        else:
-            log.error(f"No checkpoints found in {ckpt_dir}")
-            sys.exit(1)
-
-    if not ckpt_path.exists():
-        log.error(f"Checkpoint not found: {ckpt_path}")
-        sys.exit(1)
-
-    log.info(f"Using checkpoint: {ckpt_path}")
 
     # --- Output directory ---
     output_dir = run_dir / "eval"
@@ -226,23 +201,6 @@ def main():
     y_val = datamodule.val_ds.tensors[1].numpy()
 
     log.info(f"Train: {x_train.shape}, Val: {x_val.shape}")
-
-    # --- Load model from checkpoint ---
-    log.info(f"Instantiating net <{cfg.model.net._target_}>")
-    net = hydra.utils.instantiate(cfg.model.net)
-    optimizer_partial = hydra.utils.instantiate(cfg.model.optimizer)
-
-    model_cls = hydra.utils.get_class(cfg.model._target_)
-    model = model_cls.load_from_checkpoint(
-        ckpt_path,
-        cfg=cfg.model,
-        net=net,
-        optimizer=optimizer_partial,
-    )
-    model.eval()
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = model.to(device)
 
     # --- Generate samples ---
     log.info("Generating samples...")
