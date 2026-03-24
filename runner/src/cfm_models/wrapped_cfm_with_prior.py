@@ -71,9 +71,15 @@ class WrappedCFM_with_prior(CFMBase):
         return self.sigma_init - (self.sigma_init - self.sigma_min) * t
 
     def sample_xt(self, x0, x1, t, int_labels):
+        # Unwrap x0 from WG(X_init[c], ...) to WG(I, ...)
+        X_init = self.X_init[int_labels]  # (B, dim, dim)
+        X_init_inv_sqrt = power_matrix(X_init, -0.5)
+
         bar_xt = self.bar_X_t(t, x1, int_labels)
         bar_xt_sqrt = power_matrix(bar_xt, 1 / 2)
-        x0_pow_sigma = power_matrix(x0, self.sigma_t(t) / self.sigma_init)
+        x0_pow_sigma = power_matrix(
+            X_init_inv_sqrt @ x0 @ X_init_inv_sqrt, self.sigma_t(t) / self.sigma_init
+        )
         return bar_xt_sqrt @ x0_pow_sigma @ bar_xt_sqrt
 
     def ut_cond(self, xt, x1, t, int_labels):
