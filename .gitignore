@@ -15,4 +15,5 @@ __pycache__/
 logs
 
 .claude
-notebook/test_tSNE.ipynb
+
+notebooks/test_tSNE.ipynb
