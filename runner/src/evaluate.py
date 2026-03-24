@@ -145,13 +145,7 @@ def generate_samples(model, labels: np.ndarray, cfg) -> np.ndarray:
     labels_t = torch.from_numpy(labels).long().to(device)
     y_onehot = F.one_hot(labels_t, num_classes=num_classes).to(dtype)
 
-    n = len(labels)
-    dim_ts = dim * (dim + 1) // 2
-    p0 = torch.eye(dim, dtype=dtype, device=device)
-    mu0 = torch.zeros(dim_ts, dtype=dtype, device=device)
-    sigma_init = 1.0 / math.sqrt(dim_ts)
-    sigma0 = (sigma_init**2) * torch.eye(dim_ts, dtype=dtype, device=device)
-    x0 = sample_wrapped_gaussian(n, p0, mu0, sigma0)
+    x0 = model.sample_x0(batch_size=len(labels), int_labels=labels_t)
 
     generated = model.sample_ode(x0, y_onehot)
     return generated.cpu().numpy()

@@ -1,13 +1,11 @@
-"""DiffeoCFM.
+"""WrappedCFM — the proposed method.
 
 Paper parameterization (Table 1):
-    X̄_t(X₁) = I_d
-    μ_t(X₁)  = t · log(X₁)
+    X̄_t(X₁) = X₁ᵗ
+    μ_t(X₁)  = 0
     σ_t(X₁)  = σ_init - (σ_init - σ_min)t
 
-Equivalent to EuclideanCFM applied in the tangent space at the identity:
-points are mapped to the tangent space at I_d via Log, then Euclidean CFM
-is run in that flat space, and results are mapped back via Exp.
+See Section 5, Theorem 5.1 for the conditional vector field.
 """
 
 import torch
@@ -39,7 +37,7 @@ class WrappedCFM(CFMBase):
         log_x1 = matrix_log.apply(x1)
 
         Mt = x1_pow_minus_t_over_2 @ xt @ x1_pow_minus_t_over_2
-        Mt_inv_sqrt = matrix_sqrt.apply(Mt)
+        Mt_sqrt = matrix_sqrt.apply(Mt)
 
         sigma_t_prime = -(self.sigma_init - self.sigma_min)
         sigma_t = self.sigma_t(t)
@@ -50,9 +48,9 @@ class WrappedCFM(CFMBase):
             + 0.5 * xt @ log_x1
             + sigma_t_prime_over_sigma_t
             * x1_pow_t_over_2
-            @ Mt_inv_sqrt
+            @ Mt_sqrt
             @ matrix_log.apply(Mt)
-            @ Mt_inv_sqrt
+            @ Mt_sqrt
             @ x1_pow_t_over_2
         )
 

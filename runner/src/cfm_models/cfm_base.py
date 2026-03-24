@@ -34,11 +34,7 @@ class CFMBase(LightningModule):
         self.sigma_min: float = 0.0
         self.criterion = torch.nn.MSELoss()
 
-    def _expand_t(self, t, x):
-        """Reshape t from (B,) to broadcast with x of shape (B, ..., ...)."""
-        return t.reshape(t.shape[0], *([1] * (x.ndim - 1)))
-
-    def sample_x0(self, batch_size):
+    def sample_x0(self, batch_size, int_labels=None):
         dim_TS = self.dim * (self.dim + 1) // 2
         p0 = torch.eye(self.dim, dtype=self.data_dtype, device=self.device)
         mu0 = torch.zeros(dim_TS, dtype=self.data_dtype, device=self.device)
@@ -48,7 +44,7 @@ class CFMBase(LightningModule):
         x0 = sample_wrapped_gaussian(batch_size, p0, mu0, sigma0)
         return x0
 
-    def preprocess_batch(self, batch):
+    def preprocess_batch(self, batch, int_labels=None):
 
         # Get the x1 and labels from the batch
         x1 = batch.x1.to(self.data_dtype)
@@ -65,7 +61,8 @@ class CFMBase(LightningModule):
         t = torch.rand(batch_size, dtype=self.data_dtype, device=x1.device)
 
         # Sample x0
-        x0 = self.sample_x0(batch_size)
+        x0 = self.sample_x0(batch_size, int_labels)
+
         return x0, x1, t, labels
 
     def configure_optimizers(self):

@@ -17,6 +17,10 @@ class EuclideanCFM(CFMBase):
     def __init__(self, cfg, net, optimizer=None):
         super().__init__(cfg, net, optimizer)
 
+    def _expand_t(self, t, x):
+        """Reshape t from (B,) to broadcast with x of shape (B, ..., ...)."""
+        return t.reshape(t.shape[0], *([1] * (x.ndim - 1)))
+
     def sample_xt(self, x0, x1, t):
         t_ = self._expand_t(t, x0)
         sigma_t = self.sigma_init - (self.sigma_init - self.sigma_min) * t_

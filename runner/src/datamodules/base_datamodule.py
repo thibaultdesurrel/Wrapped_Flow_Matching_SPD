@@ -195,6 +195,11 @@ class BaseEEGDataModule(BaseDataModule):
                 x_train, x_val, x_test, scale=True
             )
 
+        # Compute per-class Riemannian means on training data
+        classes = np.unique(y_train)
+        class_means = np.stack([mean_riemann(x_train[y_train == c]) for c in classes])
+        self.class_means = torch.from_numpy(class_means).to(self.dtype)
+
         self.train_ds = TensorDataset(
             torch.from_numpy(x_train).to(self.dtype),
             torch.from_numpy(y_train).long(),
