@@ -6,6 +6,9 @@
 callbacks: null
 logger: null
 
+paths:
+  log_dir: ${paths.root_dir}/logs_debug
+
 hydra:
   job_logging:
     root:
