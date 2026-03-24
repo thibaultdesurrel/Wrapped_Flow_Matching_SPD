@@ -10,7 +10,6 @@ Usage:
 
 import argparse
 import logging
-import math
 import sys
 import time
 from pathlib import Path
@@ -29,7 +28,6 @@ from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_sco
 from sklearn.pipeline import make_pipeline
 from prdc import compute_prdc
 
-from utils import sample_wrapped_gaussian
 from utils.loading import load_model
 
 logging.basicConfig(
@@ -139,7 +137,6 @@ def generate_samples(model, labels: np.ndarray, cfg) -> np.ndarray:
     """Generate SPD matrices for each label using the model's sample_ode."""
     device = next(model.parameters()).device
     dtype = next(model.parameters()).dtype
-    dim = cfg.model.dim
     num_classes = cfg.model.num_classes
 
     labels_t = torch.from_numpy(labels).long().to(device)
