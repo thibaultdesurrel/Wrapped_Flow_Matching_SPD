@@ -34,6 +34,10 @@ class CFMBase(LightningModule):
         self.sigma_min: float = 0.0
         self.criterion = torch.nn.MSELoss()
 
+    def _expand_t(self, t, x):
+        """Reshape t from (B,) to broadcast with x of shape (B, ..., ...)."""
+        return t.reshape(t.shape[0], *([1] * (x.ndim - 1)))
+
     def sample_x0(self, batch_size):
         dim_TS = self.dim * (self.dim + 1) // 2
         p0 = torch.eye(self.dim, dtype=self.data_dtype, device=self.device)

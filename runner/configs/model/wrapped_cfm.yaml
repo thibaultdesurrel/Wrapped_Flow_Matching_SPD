@@ -1,0 +1,22 @@
+_target_: cfm_models.wrapped_cfm.WrappedCFM
+_partial_: false
+
+dim: 15
+dtype: float64
+num_classes: 2
+lr: 1e-3
+factor_lr: 0.1
+warmup_epochs: 10
+epochs: ${trainer.max_epochs}
+
+optimizer:
+  _target_: torch.optim.AdamW
+  _partial_: true
+
+net:
+  _target_: backbones.mlp_simple.MLP
+  input_dim: 120      # dim*(dim+1)/2
+  cond_dim: ${model.num_classes}
+  n_layers: 1
+  hidden_dim: 512
+  dtype: ${model.dtype}
