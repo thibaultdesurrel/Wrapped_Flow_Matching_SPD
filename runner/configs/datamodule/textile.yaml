@@ -1,0 +1,7 @@
+_target_: datamodules.textile.TextileDataModule
+dataset_dir: ${paths.root_dir}/datasets/textile
+batch_size: 64
+num_workers: 0
+seed: ${seed}
+dtype: float64
+recenter: true

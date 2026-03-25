@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "breizhcrops>=0.0.4.1",
     "hydra-colorlog>=1.2.0",
     "hydra-core>=1.3.2",
     "ipython>=9.11.0",
@@ -16,6 +17,7 @@ dependencies = [
     "plotly>=6.6.0",
     "prdc>=0.2",
     "rich>=14.3.3",
+    "scikit-image>=0.26.0",
     "spd-learn>=0.1.0",
     "tensorboard>=2.20.0",
     "torch>=2.10.0",

@@ -80,6 +80,12 @@ class BaseDataModule(LightningDataModule):
 
         return tuple(results)
 
+    def _compute_class_means(self, x_train: np.ndarray, y_train: np.ndarray):
+        """Compute per-class Riemannian means on training data and store as self.class_means."""
+        classes = np.unique(y_train)
+        class_means = np.stack([mean_riemann(x_train[y_train == c]) for c in classes])
+        self.class_means = torch.from_numpy(class_means).to(self.dtype)
+
     def setup(self, stage=None):
         raise NotImplementedError
 
@@ -196,9 +202,7 @@ class BaseEEGDataModule(BaseDataModule):
             )
 
         # Compute per-class Riemannian means on training data
-        classes = np.unique(y_train)
-        class_means = np.stack([mean_riemann(x_train[y_train == c]) for c in classes])
-        self.class_means = torch.from_numpy(class_means).to(self.dtype)
+        self._compute_class_means(x_train, y_train)
 
         self.train_ds = TensorDataset(
             torch.from_numpy(x_train).to(self.dtype),
