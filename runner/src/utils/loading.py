@@ -46,6 +46,12 @@ def load_model(
 
     cfg = OmegaConf.load(run_dir / ".hydra" / "config.yaml")
 
+    # Resolve hydra:runtime.* interpolations that are unavailable outside hydra.
+    # root_dir is the runner/ directory (parent of src/); output_dir is the run dir.
+    runner_dir = str(Path(_SRC_DIR).parent)
+    OmegaConf.update(cfg, "paths.root_dir", runner_dir)
+    OmegaConf.update(cfg, "paths.output_dir", str(run_dir))
+
     net = hydra.utils.instantiate(cfg.model.net)
     optimizer_partial = hydra.utils.instantiate(cfg.model.optimizer)
     model_cls = hydra.utils.get_class(cfg.model._target_)
