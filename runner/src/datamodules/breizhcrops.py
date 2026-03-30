@@ -51,6 +51,11 @@ class BreizhCropsDataModule(BaseDataModule):
             test_data = np.load(test_cache)
             x_test = test_data["all_cov"]
             y_test = test_data["all_labels"].astype(int)
+            # Re-encode to contiguous 0-based integers in case the cache was built
+            # before the fix (labels could be {0,1,3,7} instead of {0,1,2,3}).
+            le = LabelEncoder().fit(y_train_val)
+            y_train_val = le.transform(y_train_val)
+            y_test = le.transform(y_test)
         else:
             frh01 = bzh.BreizhCrops(region="frh01", root=str(cache_dir))
             frh02 = bzh.BreizhCrops(region="frh02", root=str(cache_dir))
@@ -87,6 +92,9 @@ class BreizhCropsDataModule(BaseDataModule):
                 all_cov = all_cov[mask]
                 all_labels = all_labels[mask]
 
+                # Re-encode filtered labels to contiguous 0-based integers {0,1,2,3}
+                all_labels = LabelEncoder().fit_transform(all_labels)
+
                 np.savez(cache_file, all_cov=all_cov, all_labels=all_labels)
 
             x_train_val = np.load(train_cache)["all_cov"]
@@ -107,8 +115,8 @@ class BreizhCropsDataModule(BaseDataModule):
                 x_train, x_val, x_test, scale=True
             )
 
-        # Compute per-class Riemannian means on training data
-        self._compute_class_means(x_train, y_train)
+        # Compute per-class Riemannian means and variances on training data
+        self._compute_class_means_var(x_train, y_train)
 
         self.train_ds = TensorDataset(
             torch.from_numpy(x_train).to(self.dtype),

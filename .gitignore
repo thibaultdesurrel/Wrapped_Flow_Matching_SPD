@@ -13,7 +13,7 @@ wheels/
 __pycache__/
 
 logs
-log_debug
+logs_debug
 
 .claude
 

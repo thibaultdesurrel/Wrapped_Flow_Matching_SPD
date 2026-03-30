@@ -69,18 +69,20 @@ class TextileDataModule(BaseDataModule):
             g = (coo[i, 1:, 1:] - np.mean(coo[i, 1:, 1:])) / np.std(coo[i, 1:, 1:])
             gauss = filters.gaussian(g, sigma=2)
             gauss1 = filters.gaussian(g, sigma=3)
-            val = np.vstack([
-                g.flatten(),
-                filters.gaussian(g, sigma=2).flatten(),
-                filters.gaussian(g, sigma=3).flatten(),
-                filters.gaussian(g, sigma=4).flatten(),
-                filters.laplace(g).flatten(),
-                filters.farid(g).flatten(),
-                filters.laplace(gauss).flatten(),
-                filters.laplace(gauss1).flatten(),
-                filters.farid(gauss).flatten(),
-                filters.farid(gauss1).flatten(),
-            ])
+            val = np.vstack(
+                [
+                    g.flatten(),
+                    filters.gaussian(g, sigma=2).flatten(),
+                    filters.gaussian(g, sigma=3).flatten(),
+                    filters.gaussian(g, sigma=4).flatten(),
+                    filters.laplace(g).flatten(),
+                    filters.farid(g).flatten(),
+                    filters.laplace(gauss).flatten(),
+                    filters.laplace(gauss1).flatten(),
+                    filters.farid(gauss).flatten(),
+                    filters.farid(gauss1).flatten(),
+                ]
+            )
             covs.append(np.cov(val))
 
         all_cov = np.array(covs)
@@ -112,16 +114,18 @@ class TextileDataModule(BaseDataModule):
 
         x_train = all_cov[idx[:n_train]]
         y_train = all_labels[idx[:n_train]]
-        x_val = all_cov[idx[n_train:n_train + n_val]]
-        y_val = all_labels[idx[n_train:n_train + n_val]]
-        x_test = all_cov[idx[n_train + n_val:]]
-        y_test = all_labels[idx[n_train + n_val:]]
+        x_val = all_cov[idx[n_train : n_train + n_val]]
+        y_val = all_labels[idx[n_train : n_train + n_val]]
+        x_test = all_cov[idx[n_train + n_val :]]
+        y_test = all_labels[idx[n_train + n_val :]]
 
         if self.recenter:
-            x_train, x_val, x_test = self._center_and_scale(x_train, x_val, x_test, scale=True)
+            x_train, x_val, x_test = self._center_and_scale(
+                x_train, x_val, x_test, scale=True
+            )
 
-        # Compute per-class Riemannian means on training data
-        self._compute_class_means(x_train, y_train)
+        # Compute per-class Riemannian means and variances on training data
+        self._compute_class_means_var(x_train, y_train)
 
         self.train_ds = TensorDataset(
             torch.from_numpy(x_train).to(self.dtype),

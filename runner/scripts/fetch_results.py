@@ -1,9 +1,12 @@
 import os
+import re
 import pandas as pd
 
 PATH_TO_LOGS = os.path.join(os.path.dirname(__file__), "..", "logs")
 PATH_TO_RESULTS = os.path.join(os.path.dirname(__file__), "..", "results")
 os.makedirs(PATH_TO_RESULTS, exist_ok=True)
+
+TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}$")
 
 all_results = []
 
@@ -16,29 +19,38 @@ for experiment in sorted(os.listdir(PATH_TO_LOGS)):
     exp_infos = experiment.split("_", 1)
     dataset, model = exp_infos[0], exp_infos[1]
 
-    for run in sorted(os.listdir(path_to_experiment)):
-        path_to_run = os.path.join(path_to_experiment, run)
-        if not os.path.isdir(path_to_run):
-            continue
+    subdirs = sorted(os.listdir(path_to_experiment))
 
-        # Inside each run (group_X), there's a timestamp directory
+    # Detect structure: flat (timestamp directly under experiment) or grouped (group_X/timestamp)
+    if any(TIMESTAMP_RE.match(d) for d in subdirs):
+        # Flat structure: experiment/timestamp/eval
+        runs_and_paths = [("group_0", path_to_experiment)]
+    else:
+        # Grouped structure: experiment/group_X/timestamp/eval
+        runs_and_paths = [
+            (run, os.path.join(path_to_experiment, run))
+            for run in subdirs
+            if os.path.isdir(os.path.join(path_to_experiment, run))
+        ]
+
+    for run, path_to_run in runs_and_paths:
+        # Inside each run, there's a timestamp directory
         timestamps = [
             d
             for d in os.listdir(path_to_run)
-            if os.path.isdir(os.path.join(path_to_run, d))
+            if os.path.isdir(os.path.join(path_to_run, d)) and TIMESTAMP_RE.match(d)
         ]
         if not timestamps:
             continue
 
         # Use the most recent timestamp
         timestamp = sorted(timestamps)[-1]
-        path_to_eval = os.path.join(path_to_run, timestamp, "eval")
+        path_to_timestamp = os.path.join(path_to_run, timestamp)
+        path_to_eval = os.path.join(path_to_timestamp, "eval")
 
         if not os.path.isdir(path_to_eval):
-            print(f"Warning: no eval dir in {path_to_run}/{timestamp}, skipping")
+            print(f"Warning: no eval dir in {path_to_timestamp}, skipping")
             continue
-
-        path_to_timestamp = os.path.join(path_to_run, timestamp)
 
         row = {"dataset": dataset, "model": model, "run": run}
 
