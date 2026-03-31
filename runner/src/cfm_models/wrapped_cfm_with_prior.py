@@ -33,8 +33,19 @@ class WrappedCFM_with_prior(CFMBase):
             .clone(),
         )
 
+    def set_prior_stats(self, class_means, class_vars):
+        """Set per-class prior statistics (can be called outside training)."""
+        self.X_init = class_means.to(self.device)
+        self.sigma_classes = class_vars.to(self.device)
+        self.sigma_init = torch.sqrt(
+            1 / (self.dim * (self.dim + 1) // 2) * self.sigma_classes
+        )
+
     def on_fit_start(self):
-        self.X_init = self.trainer.datamodule.class_means.to(self.device)
+        self.set_prior_stats(
+            self.trainer.datamodule.class_means,
+            self.trainer.datamodule.class_vars,
+        )
 
     def sample_x0(self, batch_size, int_labels):
         x0 = torch.empty(
@@ -50,7 +61,7 @@ class WrappedCFM_with_prior(CFMBase):
                     dtype=self.data_dtype,
                     device=self.device,
                 )
-                sigma0 = (self.sigma_init**2) * torch.eye(
+                sigma0 = (self.sigma_init[c] ** 2) * torch.eye(
                     self.dim * (self.dim + 1) // 2,
                     dtype=self.data_dtype,
                     device=self.device,
@@ -67,18 +78,20 @@ class WrappedCFM_with_prior(CFMBase):
         X_init = self.X_init[int_labels]  # (B, dim, dim)
         return airm_geodesic(X_init, x1, t)
 
-    def sigma_t(self, t):
-        return self.sigma_init - (self.sigma_init - self.sigma_min) * t
+    def sigma_t(self, t, int_labels):
+        sigma_init_c = self.sigma_init[int_labels]  # (B,)
+        return sigma_init_c - (sigma_init_c - self.sigma_min) * t.reshape(-1)  # (B,)
 
     def sample_xt(self, x0, x1, t, int_labels):
         # Unwrap x0 from WG(X_init[c], ...) to WG(I, ...)
         X_init = self.X_init[int_labels]  # (B, dim, dim)
         X_init_inv_sqrt = power_matrix(X_init, -0.5)
 
+        sigma_init_c = self.sigma_init[int_labels]  # (B,)
         bar_xt = self.bar_X_t(t, x1, int_labels)
         bar_xt_sqrt = power_matrix(bar_xt, 1 / 2)
         x0_pow_sigma = power_matrix(
-            X_init_inv_sqrt @ x0 @ X_init_inv_sqrt, self.sigma_t(t) / self.sigma_init
+            X_init_inv_sqrt @ x0 @ X_init_inv_sqrt, self.sigma_t(t, int_labels) / sigma_init_c
         )
         return bar_xt_sqrt @ x0_pow_sigma @ bar_xt_sqrt
 
@@ -92,9 +105,10 @@ class WrappedCFM_with_prior(CFMBase):
         Mt = bar_x_t_inv_sqrt @ xt @ bar_x_t_inv_sqrt
         Mt_sqrt = power_matrix(Mt, 0.5)
 
-        sigma_t_prime = -(self.sigma_init - self.sigma_min)
-        sigma_t = self.sigma_t(t)
-        sigma_t_prime_over_sigma_t = (sigma_t_prime / sigma_t).reshape(-1, 1, 1)
+        sigma_init_c = self.sigma_init[int_labels]  # (B,)
+        sigma_t_prime = -(sigma_init_c - self.sigma_min)  # (B,)
+        sigma_t = self.sigma_t(t, int_labels)  # (B,)
+        sigma_t_prime_over_sigma_t = (sigma_t_prime / sigma_t).reshape(-1, 1, 1)  # (B, 1, 1)
 
         return (
             St @ bar_x_t_inv_sqrt @ xt

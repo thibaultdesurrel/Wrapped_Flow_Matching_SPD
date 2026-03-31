@@ -21,7 +21,7 @@ def pga(covs, random_state=None):
 # GPU-accelerated pairwise Riemannian distance (general d×d SPD)
 # ---------------------------------------------------------------------------
 
-def pairwise_distance(X):
+def pairwise_distance(X, X2=None):
     """Pairwise Riemannian distance for d×d SPD matrices (GPU-accelerated).
 
     Loops over rows to keep each eigvalsh batch at size n (not n²),
@@ -30,29 +30,43 @@ def pairwise_distance(X):
     Parameters
     ----------
     X : torch.Tensor, shape (n, d, d)
+    X2 : torch.Tensor, shape (m, d, d), optional
+        If provided, computes cross-distances between X and X2.
+        If None, computes pairwise distances within X.
 
     Returns
     -------
-    D : torch.Tensor, shape (n, n)
-        Symmetric matrix of Riemannian distances.
+    D : torch.Tensor, shape (n, n) if X2 is None, else (n, m)
     """
     n = X.shape[0]
     eigvals, eigvecs = torch.linalg.eigh(X)
     inv_sqrt_eigvals = 1.0 / torch.sqrt(eigvals)
     X_invsqrt = (eigvecs * inv_sqrt_eigvals.unsqueeze(-2)) @ eigvecs.mT
 
-    D = torch.zeros(n, n, dtype=X.dtype, device=X.device)
-    for i in range(n - 1):
-        Xj = X[i + 1 :]                              # (n-i-1, d, d)
-        tmp = X_invsqrt[i] @ Xj                      # (n-i-1, d, d)
-        conj = tmp @ X_invsqrt[i]                     # (n-i-1, d, d)
-        conj = 0.5 * (conj + conj.mT)                # symmetrise for eigvalsh
-        ev = torch.linalg.eigvalsh(conj)              # (n-i-1, d)
-        ev = torch.clamp(ev, min=1e-300)
-        dists = torch.log(ev).square().sum(dim=-1).sqrt()
-        D[i, i + 1 :] = dists
-        D[i + 1 :, i] = dists
-    return D
+    if X2 is None:
+        D = torch.zeros(n, n, dtype=X.dtype, device=X.device)
+        for i in range(n - 1):
+            Xj = X[i + 1 :]                              # (n-i-1, d, d)
+            tmp = X_invsqrt[i] @ Xj                      # (n-i-1, d, d)
+            conj = tmp @ X_invsqrt[i]                     # (n-i-1, d, d)
+            conj = 0.5 * (conj + conj.mT)                # symmetrise for eigvalsh
+            ev = torch.linalg.eigvalsh(conj)              # (n-i-1, d)
+            ev = torch.clamp(ev, min=1e-300)
+            dists = torch.log(ev).square().sum(dim=-1).sqrt()
+            D[i, i + 1 :] = dists
+            D[i + 1 :, i] = dists
+        return D
+    else:
+        m = X2.shape[0]
+        D = torch.zeros(n, m, dtype=X.dtype, device=X.device)
+        for i in range(n):
+            tmp = X_invsqrt[i] @ X2                       # (m, d, d)
+            conj = tmp @ X_invsqrt[i]                     # (m, d, d)
+            conj = 0.5 * (conj + conj.mT)
+            ev = torch.linalg.eigvalsh(conj)              # (m, d)
+            ev = torch.clamp(ev, min=1e-300)
+            D[i] = torch.log(ev).square().sum(dim=-1).sqrt()
+        return D
 
 
 # ---------------------------------------------------------------------------

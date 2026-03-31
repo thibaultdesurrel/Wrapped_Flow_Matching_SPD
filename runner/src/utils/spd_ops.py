@@ -59,3 +59,51 @@ def airm_geodesic(A, B, t):
     A_invsq = power_matrix(A, -0.5)
     mid = A_invsq @ B @ A_invsq
     return A_sq @ power_matrix(mid, t) @ A_sq
+
+
+def pairwise_distance(X, X2=None):
+    """Pairwise Riemannian distance for d×d SPD matrices (GPU-accelerated).
+
+    Loops over rows to keep each eigvalsh batch at size n (not n²),
+    avoiding cusolver batch-size limits and O(n² d²) memory.
+
+    Parameters
+    ----------
+    X : torch.Tensor, shape (n, d, d)
+    X2 : torch.Tensor, shape (m, d, d), optional
+        If provided, computes cross-distances between X and X2.
+        If None, computes pairwise distances within X.
+
+    Returns
+    -------
+    D : torch.Tensor, shape (n, n) if X2 is None, else (n, m)
+    """
+    n = X.shape[0]
+    eigvals, eigvecs = torch.linalg.eigh(X)
+    inv_sqrt_eigvals = 1.0 / torch.sqrt(eigvals)
+    X_invsqrt = (eigvecs * inv_sqrt_eigvals.unsqueeze(-2)) @ eigvecs.mT
+
+    if X2 is None:
+        D = torch.zeros(n, n, dtype=X.dtype, device=X.device)
+        for i in range(n - 1):
+            Xj = X[i + 1 :]  # (n-i-1, d, d)
+            tmp = X_invsqrt[i] @ Xj  # (n-i-1, d, d)
+            conj = tmp @ X_invsqrt[i]  # (n-i-1, d, d)
+            conj = 0.5 * (conj + conj.mT)  # symmetrise for eigvalsh
+            ev = torch.linalg.eigvalsh(conj)  # (n-i-1, d)
+            ev = torch.clamp(ev, min=1e-300)
+            dists = torch.log(ev).square().sum(dim=-1).sqrt()
+            D[i, i + 1 :] = dists
+            D[i + 1 :, i] = dists
+        return D
+    else:
+        m = X2.shape[0]
+        D = torch.zeros(n, m, dtype=X.dtype, device=X.device)
+        for i in range(n):
+            tmp = X_invsqrt[i] @ X2  # (m, d, d)
+            conj = tmp @ X_invsqrt[i]  # (m, d, d)
+            conj = 0.5 * (conj + conj.mT)
+            ev = torch.linalg.eigvalsh(conj)  # (m, d)
+            ev = torch.clamp(ev, min=1e-300)
+            D[i] = torch.log(ev).square().sum(dim=-1).sqrt()
+        return D

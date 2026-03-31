@@ -26,7 +26,9 @@ from pyriemann.tangentspace import TangentSpace
 from sklearn.linear_model import LogisticRegressionCV
 from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
 from sklearn.pipeline import make_pipeline
-from prdc import compute_prdc
+from utils.prdc import compute_prdc
+from ot import emd2
+from utils.spd_ops import pairwise_distance
 
 from utils.loading import load_model
 
@@ -73,12 +75,12 @@ def project_on_spd(matrices: np.ndarray, eps: float = 1e-8) -> np.ndarray:
 
 def compute_quality_metrics(X_real: np.ndarray, X_fake: np.ndarray) -> dict:
     """PRDC metrics between real and generated distributions."""
-    X_real_flat = X_real.reshape(len(X_real), -1)
-    X_fake_flat = X_fake.reshape(len(X_fake), -1)
+    # X_real_flat = X_real.reshape(len(X_real), -1)
+    # X_fake_flat = X_fake.reshape(len(X_fake), -1)
 
-    min_len = min(len(X_real_flat), len(X_fake_flat))
-    X_real_flat = X_real_flat[:min_len]
-    X_fake_flat = X_fake_flat[:min_len]
+    min_len = min(len(X_real), len(X_fake))
+    X_real_flat = X_real[:min_len]
+    X_fake_flat = X_fake[:min_len]
 
     prdc = compute_prdc(
         real_features=X_real_flat,
@@ -91,6 +93,23 @@ def compute_quality_metrics(X_real: np.ndarray, X_fake: np.ndarray) -> dict:
         "Density": prdc["density"],
         "Coverage": prdc["coverage"],
     }
+
+
+def compute_wasserstein_distance(X_real: np.ndarray, X_fake: np.ndarray) -> dict:
+    """Wasserstein-2 distance between real and generated SPD distributions."""
+    D_cross = (
+        pairwise_distance(
+            torch.from_numpy(X_real),
+            torch.from_numpy(X_fake),
+        )
+        .cpu()
+        .numpy()
+    )
+
+    a = np.ones(len(X_real)) / len(X_real)
+    b = np.ones(len(X_fake)) / len(X_fake)
+    w2 = np.sqrt(emd2(a, b, D_cross**2))
+    return {"Wasserstein-2 distance": w2}
 
 
 # ---------------------------------------------------------------------------
@@ -193,6 +212,10 @@ def main():
 
     log.info(f"Train: {x_train.shape}, Val: {x_val.shape}")
 
+    # --- Set prior stats for models that need per-class priors ---
+    if hasattr(model, "set_prior_stats"):
+        model.set_prior_stats(datamodule.class_means, datamodule.class_vars)
+
     # --- Generate samples ---
     log.info("Generating samples...")
     t0 = time.time()
@@ -234,10 +257,15 @@ def main():
     quality_val_gen = compute_quality_metrics(x_val, gen_val_clf)
     quality_train_val = compute_quality_metrics(x_train, x_val)
 
+    log.info("Computing Wasserstein-2 distances...")
+    w2_train_gen = compute_wasserstein_distance(x_train, gen_train_clf)
+    w2_val_gen = compute_wasserstein_distance(x_val, gen_val_clf)
+    w2_train_val = compute_wasserstein_distance(x_train, x_val)
+
     quality_rows = [
-        {"Comparison": "Train vs Val (baseline)", **quality_train_val},
-        {"Comparison": "Train vs Gen", **quality_train_gen},
-        {"Comparison": "Val vs Gen", **quality_val_gen},
+        {"Comparison": "Train vs Val (baseline)", **quality_train_val, **w2_train_val},
+        {"Comparison": "Train vs Gen", **quality_train_gen, **w2_train_gen},
+        {"Comparison": "Val vs Gen", **quality_val_gen, **w2_val_gen},
     ]
     df_quality = pd.DataFrame(quality_rows)
     df_quality.to_csv(

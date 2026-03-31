@@ -15,6 +15,7 @@ dependencies = [
     "nbformat>=5.10.4",
     "numpy>=2.4.3",
     "plotly>=6.6.0",
+    "pot>=0.9.6.post1",
     "prdc>=0.2",
     "rich>=14.3.3",
     "scikit-image>=0.26.0",
