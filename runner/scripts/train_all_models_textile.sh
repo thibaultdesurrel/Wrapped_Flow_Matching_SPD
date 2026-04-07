@@ -38,7 +38,7 @@ train_and_eval() {
     local gpu=$2
 
     echo "[${experiment}] Training on GPU ${gpu}..."
-    CUDA_VISIBLE_DEVICES=$gpu uv run src/train.py -m \
+    CUDA_VISIBLE_DEVICES=$gpu uv run src/train.py \
         experiment="$experiment" \
         "${EXTRA_OVERRIDES[@]}"
 
