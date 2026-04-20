@@ -8,6 +8,7 @@ wheels/
 
 # Virtual environments
 .venv
+venvspd/
 
 .DS_Store
 __pycache__/
