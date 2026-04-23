@@ -66,20 +66,3 @@ echo "[${EXPERIMENT} group ${GROUP_IDX}] Evaluating ${run_dir}..."
 python src/evaluate.py "$run_dir"
 echo "[${EXPERIMENT} group ${GROUP_IDX}] Done."
 
-mkdir -p job_logs
-
-echo "[${experiment}] Training..."
-python src/train.py experiment="$experiment"
-
-# Find the run directory that was just created (most recent for this experiment)
-run_dir=$(ls -dt logs/"${experiment}"/*/ 2>/dev/null | head -1)
-
-if [ -z "$run_dir" ]; then
-    echo "[${experiment}] ERROR: Could not find run directory, skipping evaluation."
-    exit 1
-fi
-
-echo "[${experiment}] Evaluating ${run_dir}..."
-python src/evaluate.py "$run_dir"
-echo "[${experiment}] Done."
-
