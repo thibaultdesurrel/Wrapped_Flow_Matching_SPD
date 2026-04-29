@@ -20,6 +20,8 @@
 
 set -euo pipefail
 
+MNE_DATA_PATH="/lustre/fswork/projects/rech/ycx/utq99jv/mne_data"
+
 MODELS=(
     "diffeocfm"
     "geodesiccfm"
@@ -52,7 +54,8 @@ mkdir -p job_logs
 echo "[${EXPERIMENT} group ${GROUP_IDX}] Training..."
 python src/train.py \
     experiment="$EXPERIMENT" \
-    datamodule.test_group_idx="$GROUP_IDX"
+    datamodule.test_group_idx="$GROUP_IDX" \
+    datamodule.mne_data_path="$MNE_DATA_PATH"
 
 # Find the run directory that was just created (most recent for this experiment/group)
 run_dir=$(ls -dt logs/"${EXPERIMENT}"/group_"${GROUP_IDX}"/*/ 2>/dev/null | head -1)

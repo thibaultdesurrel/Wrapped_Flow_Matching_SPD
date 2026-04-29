@@ -18,6 +18,8 @@ from pyriemann.utils.mean import mean_riemann
 from pyriemann.utils.distance import distance_riemann
 from pyriemann.utils.base import invsqrtm, powm
 
+import mne
+
 
 @dataclass
 class SPDBatch:
@@ -140,6 +142,7 @@ class BaseEEGDataModule(BaseDataModule):
         seed: int = 42,
         dtype: str = "float64",
         recenter: bool = False,
+        mne_data_path: str | None = None,
     ):
         super().__init__(
             batch_size=batch_size,
@@ -149,6 +152,7 @@ class BaseEEGDataModule(BaseDataModule):
             recenter=recenter,
         )
         self.test_group_idx = test_group_idx
+        self.mne_data_path = mne_data_path
 
     def load_raw_data(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Return (ts, y, groups) from MOABB.
@@ -184,6 +188,10 @@ class BaseEEGDataModule(BaseDataModule):
 
     def setup(self, stage=None):
         from pyriemann.estimation import Covariances
+
+        if self.mne_data_path is not None:
+            mne.set_config("MNE_DATA", self.mne_data_path)
+            mne.set_config("MNE_DATASETS_BNCI_PATH", self.mne_data_path)
 
         ts, y, groups = self.load_raw_data()
         X = Covariances(estimator="oas").fit_transform(ts)
