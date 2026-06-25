@@ -1,0 +1,36 @@
+# @package _global_
+
+defaults:
+  - override /model: wrapped_cfm
+  - override /datamodule: swiss_roll
+
+experiment:
+  name: "swiss_roll_wrappedcfm"
+
+seed: 42
+
+hydra:
+  run:
+    dir: ${paths.log_dir}/${experiment.name}/${now:%Y-%m-%d_%H-%M-%S}
+
+model:
+  dim: 2
+  dtype: float64
+  num_classes: 1
+  lr: 1e-3
+  factor_lr: 0.1
+  warmup_epochs: 10
+  optimizer:
+    _target_: torch.optim.AdamW
+    _partial_: true
+  net:
+    _target_: backbones.mlp_simple.MLP
+    input_dim: 3      # dim*(dim+1)/2 = 2*3/2
+    cond_dim: ${model.num_classes}
+    n_layers: 3
+    hidden_dim: 128
+    dtype: ${model.dtype}
+
+trainer:
+  max_epochs: 2000
+  check_val_every_n_epoch: 20
