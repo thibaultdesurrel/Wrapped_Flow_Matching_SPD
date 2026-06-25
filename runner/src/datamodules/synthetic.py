@@ -74,12 +74,21 @@ class SwissRollDataModule(BaseDataModule):
 
         if self.recenter:
             x_train, x_val, x_test = self._center_and_scale(
-                x_train, x_val, x_test, scale=True
+                x_train.detach().cpu().numpy(),
+                x_val.detach().cpu().numpy(),
+                x_test.detach().cpu().numpy(),
+                scale=True,
             )
 
-        self.train_ds = TensorDataset(x_train, labels[train_idx])
-        self.val_ds = TensorDataset(x_val, labels[val_idx])
-        self.test_ds = TensorDataset(x_test, labels[test_idx])
+        self.train_ds = TensorDataset(
+            torch.from_numpy(x_train).to(self.dtype), labels[train_idx]
+        )
+        self.val_ds = TensorDataset(
+            torch.from_numpy(x_val).to(self.dtype), labels[val_idx]
+        )
+        self.test_ds = TensorDataset(
+            torch.from_numpy(x_test).to(self.dtype), labels[test_idx]
+        )
 
 
 class Figure8DataModule(BaseDataModule):

@@ -20,7 +20,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."   # cd into runner/
 
 # --- Parse args: full grid by default, or a single (experiment, n_seeds) run ---
-DATASETS=(figure8 swiss_roll)
+#DATASETS=(figure8 swiss_roll)
+DATASETS=(swiss_roll)
 MODELS=(wrappedcfm geodesiccfm diffeocfm euclideancfm)
 
 EXPERIMENTS=()

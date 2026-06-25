@@ -27,7 +27,7 @@ model:
     _target_: backbones.mlp_simple.MLP
     input_dim: 3      # dim*(dim+1)/2 = 2*3/2
     cond_dim: ${model.num_classes}
-    n_layers: 1
+    n_layers: 6
     hidden_dim: 128
     dtype: ${model.dtype}
 
