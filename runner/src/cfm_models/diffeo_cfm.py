@@ -14,14 +14,37 @@ import math
 
 import torch
 
-from cfm_models.euclidean_cfm import EuclideanCFM
+from cfm_models.cfm_base import CFMBase
 from solver.euclidean_ode_solver import EuclideanODESolver
 from spd_learn.functional import matrix_log, matrix_exp, sym_to_upper, vec_to_sym
 
 
-class DiffeoCFM(EuclideanCFM):
-    def __init__(self, cfg, net, optimizer=None):
-        super().__init__(cfg, net, optimizer)
+class DiffeoCFM(CFMBase):
+    """DiffeoCFM: a Euclidean (Gaussian) CFM run in the tangent space at I_d.
+
+    Unlike a plain EuclideanCFM, the source must be a *manifold* distribution so
+    that mapping it to the tangent space via Log is well defined: it inherits
+    CFMBase's wrapped-Gaussian source (SPD, exp of N(0, sigma_init^2 I)), whose
+    Log is exactly an isotropic Gaussian in the tangent space. The flat Gaussian
+    conditional path lives in that tangent space; the two helpers below are the
+    same arithmetic as EuclideanCFM's path but are inlined here so DiffeoCFM does
+    not depend on EuclideanCFM's (non-PD) Euclidean source / sigma_init.
+    """
+
+    def _expand_t(self, t, x):
+        """Reshape t from (B,) to broadcast with x of shape (B, ..., ...)."""
+        return t.reshape(t.shape[0], *([1] * (x.ndim - 1)))
+
+    def sample_xt(self, x0, x1, t):
+        t_ = self._expand_t(t, x0)
+        sigma_t = self.sigma_init - (self.sigma_init - self.sigma_min) * t_
+        return (sigma_t / self.sigma_init) * x0 + t_ * x1
+
+    def ut_cond(self, xt, x1, t):
+        t_ = self._expand_t(t, xt)
+        sigma_t = self.sigma_init - (self.sigma_init - self.sigma_min) * t_
+        sigma_t_prime = -(self.sigma_init - self.sigma_min)
+        return (sigma_t_prime / sigma_t) * (xt - t_ * x1) + x1
 
     def step(self, batch):
         x0, x1, t, labels = self.preprocess_batch(batch)
