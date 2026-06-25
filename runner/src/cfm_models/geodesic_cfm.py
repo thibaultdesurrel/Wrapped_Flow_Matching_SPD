@@ -1,13 +1,13 @@
-"""DiffeoCFM.
+"""GeodesicCFM.
 
-Paper parameterization (Table 1):
-    X̄_t(X₁) = I_d
-    μ_t(X₁)  = t · log(X₁)
-    σ_t(X₁)  = σ_init - (σ_init - σ_min)t
+Conditional probability path defined by the AIRM geodesic from the source X₀
+to the target X₁:
+    X_t = γ(t) = X₀^{1/2} (X₀^{-1/2} X₁ X₀^{-1/2})^t X₀^{1/2}
 
-Equivalent to EuclideanCFM applied in the tangent space at the identity:
-points are mapped to the tangent space at I_d via Log, then Euclidean CFM
-is run in that flat space, and results are mapped back via Exp.
+The conditional vector field u_t is the geodesic velocity dγ/dt, obtained here
+by differentiating the geodesic through it with a JVP. Training matches the
+network to u_t under the AIRM inner product; sampling integrates the learned
+field on the manifold with the AIRM exponential map.
 """
 
 import torch
