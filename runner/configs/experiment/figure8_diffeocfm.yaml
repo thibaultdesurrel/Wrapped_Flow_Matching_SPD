@@ -27,10 +27,10 @@ model:
     _target_: backbones.mlp_simple.MLP
     input_dim: 3      # dim*(dim+1)/2 = 2*3/2
     cond_dim: ${model.num_classes}
-    n_layers: 1
+    n_layers: 6
     hidden_dim: 128
     dtype: ${model.dtype}
 
 trainer:
   max_epochs: 2000
-  check_val_every_n_epoch: 20
+  check_val_every_n_epoch: 100
