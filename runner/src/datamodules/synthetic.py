@@ -8,6 +8,7 @@ class SwissRollDataModule(BaseDataModule):
         self,
         n_samples: int,
         batch_size: int,
+        dim: int = 2,
         num_workers: int = 0,
         seed: int = 42,
         dtype: str = "float64",
@@ -21,39 +22,41 @@ class SwissRollDataModule(BaseDataModule):
             recenter=recenter,
         )
         self.n_samples = n_samples
+        self.dim = dim
+
+    def _random_orthogonal(self, n):
+        A = torch.randn(n, n, dtype=self.dtype)
+        Q, R = torch.linalg.qr(A)
+        # avoid sign ambiguity / improper reflections
+        Q = Q * torch.sign(torch.diagonal(R)).unsqueeze(0)
+        return Q
 
     def create_swiss_roll(self, n_samples=1000):
-        # 1. Generate Spiral parameters
-        # torch.rand returns uniform random numbers in [0, 1)
-        t = (
-            2 * torch.pi * (1 + 2 * torch.rand(n_samples, dtype=self.dtype))
-        )  # Angle parameter
-        width = torch.rand(n_samples, dtype=self.dtype) * 3.0  # Ribbon width
+        n = self.dim
+        t = 2 * torch.pi * (1 + 2 * torch.rand(n_samples, dtype=self.dtype))
+        width = torch.rand(n_samples, dtype=self.dtype) * 3.0
 
-        # 2. Create Spiral in horizontal plane (u=a-c, v=2b)
-        radius = t
-        u = radius * torch.cos(t)
-        v = radius * torch.sin(t)
+        lam_min = (width + 1.0) / 2.0  # distance to the boundary (rank-deficiency)
+        lam_max = t + lam_min  # spiral "radius" growth
 
-        # 3. Lift to vertical axis (w=a+c).
-        # The cone boundary is at w = sqrt(u^2 + v^2).
-        w_boundary = torch.sqrt(u**2 + v**2)
-        w = w_boundary + width + 1.0
+        eigvals = lam_min.unsqueeze(1).repeat(1, n)
+        eigvals[:, -1] = lam_max
+        for k in range(1, n - 1):  # optional: spread remaining eigenvalues
+            frac = k / (n - 1)
+            eigvals[:, k] = lam_min + frac * (lam_max - lam_min)
 
-        # 4. Map back to Matrix Coordinates (a, b, c)
-        b = v / 2.0
-        a = (w + u) / 2.0
-        c = (w - u) / 2.0
+        # Generator of the winding. A single 2-plane rotation reproduces n=2
+        # exactly; a fixed random skew-symmetric A gives richer winding through
+        # SO(n).
+        A = torch.zeros(n, n, dtype=self.dtype)
+        A[0, 1], A[1, 0] = 1.0, -1.0
+        R = torch.matrix_exp(t.view(-1, 1, 1) / 2 * A)
 
-        # Stack into a tensor (n, 2, 2)
-        # P = [[a, b], [b, c]]
-        x1 = torch.zeros((n_samples, 2, 2), dtype=self.dtype)
-        x1[:, 0, 0] = a
-        x1[:, 0, 1] = b
-        x1[:, 1, 0] = b
-        x1[:, 1, 1] = c
-
-        return x1
+        D = torch.diag_embed(eigvals)
+        P = R @ D @ R.transpose(-1, -2)
+        Q = self._random_orthogonal(n)
+        P_rot = Q @ P @ Q.transpose(-1, -2)
+        return P_rot
 
     def setup(self, stage=None):
         torch.manual_seed(self.seed)
