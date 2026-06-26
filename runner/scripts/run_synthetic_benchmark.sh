@@ -21,7 +21,7 @@ cd "$(dirname "$0")/.."   # cd into runner/
 
 # --- Parse args: full grid by default, or a single (experiment, n_seeds) run ---
 #DATASETS=(figure8 swiss_roll)
-DATASETS=(swiss_roll)
+DATASETS=(swiss_roll_dim_5)
 MODELS=(wrappedcfm geodesiccfm diffeocfm euclideancfm)
 
 EXPERIMENTS=()
