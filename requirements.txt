@@ -112,7 +112,7 @@ rpds-py==0.30.0
 scikit-learn==1.8.0
 scipy==1.17.1
 seaborn==0.13.2
-setuptools==82.0.1
+setuptools==70.3.0
 six==1.17.0
 spd-learn==0.1.0
 stack-data==0.6.3

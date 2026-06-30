@@ -19,6 +19,7 @@ dependencies = [
     "prdc>=0.2",
     "rich>=14.3.3",
     "scikit-image>=0.26.0",
+    "setuptools>=65,<71",
     "spd-learn>=0.1.0",
     "tensorboard>=2.20.0",
     "torch>=2.10.0",
