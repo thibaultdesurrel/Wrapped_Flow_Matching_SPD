@@ -1,6 +1,6 @@
 _target_: datamodules.breizhcrops.BreizhCropsDataModule
 dataset_dir: ${paths.root_dir}/datasets/breizhcrops
-batch_size: 512
+batch_size: 64
 num_workers: 4
 seed: ${seed}
 dtype: float64
