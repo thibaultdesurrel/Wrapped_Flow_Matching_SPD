@@ -5,9 +5,10 @@ from spd_learn.functional import clamp_eigvals, get_epsilon, exp_map_airm
 
 
 class RiemannianODESolver:
-    def __init__(self, net, eucl_then_proj=False):
+    def __init__(self, net, eucl_then_proj=False, nsteps=100):
         self.net = net
         self.eucl_then_proj = eucl_then_proj
+        self.nsteps = nsteps
 
     def sample(self, x0: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Solve the CFM for a given x0."""
@@ -40,7 +41,7 @@ class RiemannianODESolver:
             # Solve the ODE directly on the manifold using the Riemannian exponential map
             epsilon = get_epsilon(x0.dtype, "eigval_clamp")
             threshold_value = max(1e-5, epsilon)
-            nsteps=100
+            nsteps = self.nsteps
             delta_t = 1.0 / nsteps
             x1 = x0
             time_grid = torch.linspace(0, 1, nsteps + 1, device=x0.device, dtype=x0.dtype).view(

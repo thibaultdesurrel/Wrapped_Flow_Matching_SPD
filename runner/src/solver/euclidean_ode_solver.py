@@ -1,30 +1,32 @@
 import torch
 
-from torchdiffeq import odeint
-
 
 class EuclideanODESolver:
-    def __init__(self, net):
+    def __init__(self, net, nsteps=100):
         self.net = net
+        self.nsteps = nsteps
 
     def sample(self, x0, y):
-        """Solve the CFM for a given x0."""
-        time_grid = torch.linspace(0, 1, 2, device=x0.device, dtype=x0.dtype)
+        """Solve the CFM for a given x0 with a classical (flat) Euler scheme.
 
-        def ode_func(t, x):
+        Uses the same fixed integration budget as RiemannianODESolver (100
+        steps by default), with the exponential-map update replaced by the
+        flat Euclidean step x <- x + h * v_t(x), so that Euclidean/Diffeo and
+        the manifold models are compared under the same solver.
+        """
+        delta_t = 1.0 / self.nsteps
+        x1 = x0
+        time_grid = torch.linspace(
+            0, 1, self.nsteps + 1, device=x0.device, dtype=x0.dtype
+        ).view(-1, 1)
+
+        for i in range(self.nsteps):
             if y is not None:
-                return self.net(x, t, y)
+                vt = self.net(x1, time_grid[i], y)
             else:
-                return self.net(x, t)
+                vt = self.net(x1, time_grid[i])
 
-        sol = odeint(
-            ode_func,
-            x0,
-            t=time_grid,
-            method="dopri5",
-            atol=1e-5,
-            rtol=1e-5,
-            options={"min_step": 1e-5},
-        )
+            # Euler step
+            x1 = x1 + delta_t * vt
 
-        return sol[-1]
+        return x1

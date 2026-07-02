@@ -20,6 +20,7 @@ class EuclideanCFM(CFMBase):
     def __init__(self, cfg, net, optimizer=None):
         super().__init__(cfg, net, optimizer)
         self.sigma_init = 1.0
+        self.sigma_min = self.sigma_init / 50.0
 
     def sample_x0(self, batch_size, int_labels=None):
         """Classical Gaussian source on the space of symmetric matrices.

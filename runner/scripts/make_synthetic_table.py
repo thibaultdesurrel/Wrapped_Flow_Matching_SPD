@@ -32,10 +32,16 @@ MODELS = ["wrappedcfm", "geodesiccfm", "diffeocfm", "euclideancfm"]
 
 
 def split_experiment(name: str):
-    """Split an experiment name like 'swiss_roll_wrappedcfm' -> (dataset, model)."""
-    for ds in DATASETS:
-        if name.startswith(ds + "_"):
-            return ds, name[len(ds) + 1 :]
+    """Split an experiment name like 'swiss_roll_wrappedcfm' or
+    'wg_mixture_k100_wrappedcfm' -> (dataset, model).
+
+    The model is the trailing '_<model>' component; everything before it is
+    the dataset (so parameterized dataset names like wg_mixture_k<kappa> work
+    without being listed in DATASETS).
+    """
+    for m in MODELS:
+        if name.endswith("_" + m):
+            return name[: -len(m) - 1], m
     return None, None
 
 
@@ -82,8 +88,11 @@ def main():
     summary["n_seeds"] = grouped.size()
     summary = summary.reset_index()
 
-    # Order rows by the canonical dataset/model order.
-    summary["dataset"] = pd.Categorical(summary["dataset"], DATASETS, ordered=True)
+    # Order rows by the canonical dataset/model order; datasets not listed in
+    # DATASETS (e.g. wg_mixture_k<kappa>) are appended in lexicographic order.
+    seen = set(summary["dataset"])
+    dataset_order = [d for d in DATASETS if d in seen] + sorted(seen - set(DATASETS))
+    summary["dataset"] = pd.Categorical(summary["dataset"], dataset_order, ordered=True)
     summary["model"] = pd.Categorical(summary["model"], MODELS, ordered=True)
     summary = summary.sort_values(["dataset", "model"]).reset_index(drop=True)
 
