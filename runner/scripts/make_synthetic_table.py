@@ -27,7 +27,7 @@ PATH_TO_LOGS = os.path.join(HERE, "..", "logs")
 PATH_TO_RESULTS = os.path.join(HERE, "..", "results")
 OUTPUT = os.path.join(PATH_TO_RESULTS, "synthetic_summary.csv")
 
-DATASETS = ["figure8", "swiss_roll"]
+DATASETS = ["figure8", "swiss_roll_dim_5", "swiss_roll_dim_10", "swiss_roll"]
 MODELS = ["wrappedcfm", "geodesiccfm", "diffeocfm", "euclideancfm"]
 
 

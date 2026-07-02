@@ -3,9 +3,9 @@
 defaults:
   - override /model: geodesic_cfm
   - override /datamodule: swiss_roll
-
+  
 experiment:
-  name: "swiss_roll_dim_5_geodesiccfm"
+  name: "swiss_roll_dim_10_diffeocfm"
 
 seed: 42
 
@@ -14,26 +14,26 @@ hydra:
     dir: ${paths.log_dir}/${experiment.name}/${now:%Y-%m-%d_%H-%M-%S}
 
 datamodule:
-  dim: 5
+  dim: 10
 
 model:
-  dim: 5
+  dim: 10
   dtype: float64
   num_classes: 1
-  lr: 1e-4
+  lr: 1e-3
   factor_lr: 0.1
-  warmup_epochs: 100
+  warmup_epochs: 10
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
   net:
     _target_: backbones.mlp_simple.MLP
-    input_dim: 15     # dim*(dim+1)/2 = 5*6/2
+    input_dim: 55     # dim*(dim+1)/2 = 10*11/2
     cond_dim: ${model.num_classes}
-    n_layers: 6
-    hidden_dim: 128
+    n_layers: 10
+    hidden_dim: 512
     dtype: ${model.dtype}
 
 trainer:
-  max_epochs: 2000
-  check_val_every_n_epoch: 20
+  max_epochs: 10000
+  check_val_every_n_epoch: 100
