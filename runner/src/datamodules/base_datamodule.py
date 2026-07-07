@@ -59,7 +59,7 @@ class BaseDataModule(LightningDataModule):
         self.recenter = recenter
 
     @staticmethod
-    def _center_and_scale(X_fit, *X_others, scale=True):
+    def _center_and_scale(X_fit, *X_others, scale=False):
         """Center SPD matrices around identity and optionally rescale to unit Fréchet variance.
 
         Fits on X_fit (training set), applies the same transform to all arrays.

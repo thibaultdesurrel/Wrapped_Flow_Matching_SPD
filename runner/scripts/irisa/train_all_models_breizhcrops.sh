@@ -7,7 +7,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=11
 #SBATCH --hint=nomultithread
-#SBATCH --time=6:00:00
+#SBATCH --time=20:00:00
 #SBATCH --output=job_logs/%x_%a.out
 #SBATCH --error=job_logs/%x_%a.err
 #SBATCH --partition=gpu_p13
