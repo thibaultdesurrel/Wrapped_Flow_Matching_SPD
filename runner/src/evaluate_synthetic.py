@@ -111,9 +111,9 @@ def loglikelihood(model, x_test: np.ndarray, y_test: np.ndarray, cfg) -> tuple:
         y = F.one_hot(lbl, num_classes=cfg.model.num_classes).to(dtype)
 
         _, logp = model.compute_loglikelihood(x1, y, nsteps=LL_NSTEPS)
-        # if is_euclidean:
-        #     # flat Lebesgue -> AIRM volume, so LL is comparable across models
-        #     logp = logp + 0.5 * (x1.shape[-1] + 1) * torch.logdet(x1)
+        if is_euclidean:
+            # flat Lebesgue -> AIRM volume, so LL is comparable across models
+            logp = logp + 0.5 * (x1.shape[-1] + 1) * torch.logdet(x1)
 
         lls.append(logp.detach().cpu())
 
