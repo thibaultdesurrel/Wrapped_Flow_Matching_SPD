@@ -40,6 +40,7 @@ class WrappedCFM_with_prior(CFMBase):
         self.sigma_init = torch.sqrt(
             1 / (self.dim * (self.dim + 1) // 2) * self.sigma_classes
         )
+        self.sigma_min = self.sigma_init / 50.0  # per-class, like sigma_init
 
     def on_fit_start(self):
         self.set_prior_stats(
@@ -80,7 +81,8 @@ class WrappedCFM_with_prior(CFMBase):
 
     def sigma_t(self, t, int_labels):
         sigma_init_c = self.sigma_init[int_labels]  # (B,)
-        return sigma_init_c - (sigma_init_c - self.sigma_min) * t.reshape(-1)  # (B,)
+        sigma_min_c = self.sigma_min[int_labels]  # (B,)
+        return sigma_init_c - (sigma_init_c - sigma_min_c) * t.reshape(-1)  # (B,)
 
     def sample_xt(self, x0, x1, t, int_labels):
         # Unwrap x0 from WG(X_init[c], ...) to WG(I, ...)
@@ -106,7 +108,7 @@ class WrappedCFM_with_prior(CFMBase):
         Mt_sqrt = power_matrix(Mt, 0.5)
 
         sigma_init_c = self.sigma_init[int_labels]  # (B,)
-        sigma_t_prime = -(sigma_init_c - self.sigma_min)  # (B,)
+        sigma_t_prime = -(sigma_init_c - self.sigma_min[int_labels])  # (B,)
         sigma_t = self.sigma_t(t, int_labels)  # (B,)
         sigma_t_prime_over_sigma_t = (sigma_t_prime / sigma_t).reshape(-1, 1, 1)  # (B, 1, 1)
 

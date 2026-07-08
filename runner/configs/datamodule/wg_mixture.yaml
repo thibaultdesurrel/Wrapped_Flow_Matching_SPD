@@ -1,0 +1,12 @@
+_target_: datamodules.synthetic.WGMixtureDataModule
+n_samples: 10000
+batch_size: 2048
+dim: 10
+num_classes: 3
+kappa: 100          # condition number of the class centers (the sweep knob)
+sigma_tangent: null # null -> 1/sqrt(D), the tangent-space noise std
+num_workers: 0
+seed: ${seed}
+dtype: float64
+recenter: true      # center at the Riemannian mean
+rescale: false      # do NOT rescale to unit Frechet variance (would shrink kappa)

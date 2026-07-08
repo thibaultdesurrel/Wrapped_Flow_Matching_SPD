@@ -36,4 +36,4 @@ model:
 
 trainer:
   max_epochs: 2000
-  check_val_every_n_epoch: 20
+  check_val_every_n_epoch: 100

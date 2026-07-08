@@ -34,7 +34,9 @@ class CFMBase(LightningModule):
         self.dim: int = self.cfg.dim
 
         self.sigma_init: float = 1.0 / math.sqrt(self.dim * (self.dim + 1) / 2)
-        self.sigma_min: float = 0.0
+        # sigma_min > 0 keeps the conditional field Lipschitz near t = 1
+        # (paper: sigma_min << sigma_init).
+        self.sigma_min: float = self.sigma_init / 50.0
         self.criterion = torch.nn.MSELoss()
 
     def sample_x0(self, batch_size, int_labels=None):

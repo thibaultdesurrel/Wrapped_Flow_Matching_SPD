@@ -20,9 +20,9 @@ model:
   dim: 5
   dtype: float64
   num_classes: 1
-  lr: 1e-4
+  lr: 1e-3
   factor_lr: 0.1
-  warmup_epochs: 100
+  warmup_epochs: 10
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
@@ -36,4 +36,4 @@ model:
 
 trainer:
   max_epochs: 2000
-  check_val_every_n_epoch: 20
+  check_val_every_n_epoch: 100
