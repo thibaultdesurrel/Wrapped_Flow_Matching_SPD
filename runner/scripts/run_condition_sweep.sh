@@ -11,6 +11,9 @@
 #   ./scripts/run_condition_sweep.sh "10000" 2             # quick signal check at kappa=1e4
 #   ./scripts/run_condition_sweep.sh "100 10000" 3 trainer.max_epochs=2000
 #
+# Set JOBS_PER_GPU to run more than one job per GPU concurrently, e.g.:
+#   JOBS_PER_GPU=2 ./scripts/run_condition_sweep.sh        # 2 jobs per GPU in parallel
+#
 # Afterwards:
 #   uv run scripts/make_synthetic_table.py   # -> results/synthetic_summary.csv
 
@@ -42,11 +45,22 @@ if [ "$N_GPUS" -eq 0 ]; then
     N_GPUS=1
 fi
 
+# --- Slots: JOBS_PER_GPU concurrent jobs per GPU (default 1). Each slot maps
+# to one GPU; with JOBS_PER_GPU=2 each GPU id appears in two slots. ---
+JOBS_PER_GPU="${JOBS_PER_GPU:-1}"
+SLOT_GPU=()
+for ((r = 0; r < JOBS_PER_GPU; r++)); do
+    for gpu in "${GPUS[@]}"; do
+        SLOT_GPU+=("$gpu")
+    done
+done
+N_SLOTS=${#SLOT_GPU[@]}
+
 echo "=== Condition-number sweep (WG mixture) ==="
 echo "Kappas: ${KAPPAS[*]}"
 echo "Models: ${MODELS[*]}"
 echo "Seeds:  ${SEEDS[*]}"
-echo "GPUs:   ${GPUS[*]}"
+echo "GPUs:   ${GPUS[*]} (${JOBS_PER_GPU} job(s) per GPU, ${N_SLOTS} slot(s) total)"
 
 # Train then evaluate a single (kappa, model, seed) run. Background job.
 train_and_eval() {
@@ -79,37 +93,37 @@ for kappa in "${KAPPAS[@]}"; do
     done
 done
 
-# Continuous scheduler: keep at most one job per GPU running (same scheme as
+# Continuous scheduler: keep at most one job per slot running (same scheme as
 # run_synthetic_benchmark.sh; indexed arrays so it works on bash 3.2 / macOS).
-echo "=== ${#JOBS[@]} jobs total, up to ${N_GPUS} running in parallel. ==="
-GPU_PID=()
-for ((g = 0; g < N_GPUS; g++)); do GPU_PID[$g]=""; done
+echo "=== ${#JOBS[@]} jobs total, up to ${N_SLOTS} running in parallel. ==="
+SLOT_PID=()
+for ((s = 0; s < N_SLOTS; s++)); do SLOT_PID[$s]=""; done
 
 FAILED=0
 job_idx=0
 running=0
 
 while [ "$job_idx" -lt "${#JOBS[@]}" ] || [ "$running" -gt 0 ]; do
-    # Reap finished jobs and free their GPU.
-    for ((g = 0; g < N_GPUS; g++)); do
-        pid=${GPU_PID[$g]}
+    # Reap finished jobs and free their slot.
+    for ((s = 0; s < N_SLOTS; s++)); do
+        pid=${SLOT_PID[$s]}
         if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
             if ! wait "$pid"; then
                 echo "ERROR: Job with PID $pid failed."
                 FAILED=$((FAILED + 1))
             fi
-            GPU_PID[$g]=""
+            SLOT_PID[$s]=""
             running=$((running - 1))
         fi
     done
 
-    # Launch new jobs onto free GPUs.
-    for ((g = 0; g < N_GPUS; g++)); do
+    # Launch new jobs onto free slots.
+    for ((s = 0; s < N_SLOTS; s++)); do
         [ "$job_idx" -lt "${#JOBS[@]}" ] || break
-        if [ -z "${GPU_PID[$g]}" ]; then
+        if [ -z "${SLOT_PID[$s]}" ]; then
             IFS=":" read -r kappa model seed <<< "${JOBS[$job_idx]}"
-            train_and_eval "$kappa" "$model" "$seed" "${GPUS[$g]}" &
-            GPU_PID[$g]=$!
+            train_and_eval "$kappa" "$model" "$seed" "${SLOT_GPU[$s]}" &
+            SLOT_PID[$s]=$!
             running=$((running + 1))
             job_idx=$((job_idx + 1))
         fi

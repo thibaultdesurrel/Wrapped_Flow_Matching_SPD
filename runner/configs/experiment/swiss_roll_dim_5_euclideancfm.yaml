@@ -35,5 +35,5 @@ model:
     dtype: ${model.dtype}
 
 trainer:
-  max_epochs: 2000
+  max_epochs: 40000
   check_val_every_n_epoch: 100

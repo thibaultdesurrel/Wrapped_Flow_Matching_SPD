@@ -4,4 +4,4 @@ batch_size: 2048
 num_workers: 0
 seed: ${seed}
 dtype: float64
-recenter: true
+recenter: false

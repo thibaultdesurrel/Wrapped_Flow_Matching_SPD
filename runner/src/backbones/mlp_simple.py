@@ -3,6 +3,8 @@ from torch import nn
 
 from spd_learn.functional import sym_to_upper, vec_to_sym
 
+from .common import TimeDependentSwish
+
 DTYPE_MAP = {
     "float32": torch.float32,
     "float64": torch.float64,
@@ -41,9 +43,11 @@ class MLP(nn.Module):
                 dtype=self.dtype,
             )
         )
+        # layers.append(TimeDependentSwish(self.hidden_dim, self.dtype))
         layers.append(nn.SELU())
         for i in range(n_layers - 1):
             layers.append(nn.Linear(self.hidden_dim, self.hidden_dim, dtype=self.dtype))
+            # layers.append(TimeDependentSwish(self.hidden_dim, self.dtype))
             layers.append(nn.SELU())
         layers.append(nn.Linear(self.hidden_dim, self.input_dim, dtype=self.dtype))
 

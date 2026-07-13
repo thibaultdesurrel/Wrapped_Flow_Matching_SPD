@@ -34,6 +34,38 @@ class SwissRollDataModule(BaseDataModule):
         Q = Q * torch.sign(torch.diagonal(R)).unsqueeze(0)
         return Q
 
+    def create_swiss_roll_2d(self, n_samples=1000):
+        # 1. Generate Spiral parameters
+        # torch.rand returns uniform random numbers in [0, 1)
+        t = (
+            2 * torch.pi * (1 + 2 * torch.rand(n_samples, dtype=self.dtype))
+        )  # Angle parameter
+        width = torch.rand(n_samples, dtype=self.dtype) * 3.0  # Ribbon width
+
+        # 2. Create Spiral in horizontal plane (u=a-c, v=2b)
+        radius = t
+        u = radius * torch.cos(t)
+        v = radius * torch.sin(t)
+
+        # 3. Lift to vertical axis (w=a+c).
+        # The cone boundary is at w = sqrt(u^2 + v^2).
+        w_boundary = torch.sqrt(u**2 + v**2)
+        w = w_boundary + width + 1.0
+
+        # 4. Map back to Matrix Coordinates (a, b, c)
+        b = v / 2.0
+        a = (w + u) / 2.0
+        c = (w - u) / 2.0
+
+        # Stack into a tensor (n, 2, 2)
+        # P = [[a, b], [b, c]]
+        x1 = torch.zeros((n_samples, 2, 2), dtype=self.dtype)
+        x1[:, 0, 0] = a
+        x1[:, 0, 1] = b
+        x1[:, 1, 0] = b
+        x1[:, 1, 1] = c
+        return x1
+
     def create_swiss_roll(self, n_samples=1000):
         n = self.dim
         t = 2 * torch.pi * (1 + 2 * torch.rand(n_samples, dtype=self.dtype))
@@ -63,7 +95,11 @@ class SwissRollDataModule(BaseDataModule):
 
     def setup(self, stage=None):
         torch.manual_seed(self.seed)
-        x1 = self.create_swiss_roll(self.n_samples)
+        if self.dim == 2:
+            x1 = self.create_swiss_roll_2d(self.n_samples)
+        else:
+            x1 = self.create_swiss_roll(self.n_samples)
+
         labels = torch.zeros(self.n_samples, dtype=torch.long)
 
         n_train = int(0.8 * self.n_samples)
@@ -86,15 +122,19 @@ class SwissRollDataModule(BaseDataModule):
                 scale=True,
             )
 
-        self.train_ds = TensorDataset(
-            torch.from_numpy(x_train).to(self.dtype), labels[train_idx]
-        )
-        self.val_ds = TensorDataset(
-            torch.from_numpy(x_val).to(self.dtype), labels[val_idx]
-        )
-        self.test_ds = TensorDataset(
-            torch.from_numpy(x_test).to(self.dtype), labels[test_idx]
-        )
+            self.train_ds = TensorDataset(
+                torch.from_numpy(x_train).to(self.dtype), labels[train_idx]
+            )
+            self.val_ds = TensorDataset(
+                torch.from_numpy(x_val).to(self.dtype), labels[val_idx]
+            )
+            self.test_ds = TensorDataset(
+                torch.from_numpy(x_test).to(self.dtype), labels[test_idx]
+            )
+        else:
+            self.train_ds = TensorDataset(x_train, labels[train_idx])
+            self.val_ds = TensorDataset(x_val, labels[val_idx])
+            self.test_ds = TensorDataset(x_test, labels[test_idx])
 
 
 class WGMixtureDataModule(BaseDataModule):
@@ -206,9 +246,7 @@ class WGMixtureDataModule(BaseDataModule):
         y_train = labels[train_idx]
         self._compute_class_means_var(x_train, y_train.numpy())
 
-        self.train_ds = TensorDataset(
-            torch.from_numpy(x_train).to(self.dtype), y_train
-        )
+        self.train_ds = TensorDataset(torch.from_numpy(x_train).to(self.dtype), y_train)
         self.val_ds = TensorDataset(
             torch.from_numpy(x_val).to(self.dtype), labels[val_idx]
         )
@@ -301,12 +339,16 @@ class Figure8DataModule(BaseDataModule):
                 scale=True,
             )
 
-        self.train_ds = TensorDataset(
-            torch.from_numpy(x_train).to(self.dtype), labels[train_idx]
-        )
-        self.val_ds = TensorDataset(
-            torch.from_numpy(x_val).to(self.dtype), labels[val_idx]
-        )
-        self.test_ds = TensorDataset(
-            torch.from_numpy(x_test).to(self.dtype), labels[test_idx]
-        )
+            self.train_ds = TensorDataset(
+                torch.from_numpy(x_train).to(self.dtype), labels[train_idx]
+            )
+            self.val_ds = TensorDataset(
+                torch.from_numpy(x_val).to(self.dtype), labels[val_idx]
+            )
+            self.test_ds = TensorDataset(
+                torch.from_numpy(x_test).to(self.dtype), labels[test_idx]
+            )
+        else:
+            self.train_ds = TensorDataset(x_train, labels[train_idx])
+            self.val_ds = TensorDataset(x_val, labels[val_idx])
+            self.test_ds = TensorDataset(x_test, labels[test_idx])
