@@ -23,10 +23,10 @@ set -euo pipefail
 MNE_DATA_PATH="/lustre/fswork/projects/rech/ycx/utq99jv/mne_data"
 
 MODELS=(
+    "euclideancfm"
     "diffeocfm"
     "geodesiccfm"
     "wrappedcfm"
-    "wrappedcfm_with_prior"
 )
 
 TASK_ID=$SLURM_ARRAY_TASK_ID

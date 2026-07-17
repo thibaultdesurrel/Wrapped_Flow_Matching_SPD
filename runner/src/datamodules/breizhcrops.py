@@ -112,7 +112,7 @@ class BreizhCropsDataModule(BaseDataModule):
 
         if self.recenter:
             x_train, x_val, x_test = self._center_and_scale(
-                x_train, x_val, x_test, scale=True
+                x_train, x_val, x_test, scale=False
             )
 
         # Compute per-class Riemannian means and variances on training data

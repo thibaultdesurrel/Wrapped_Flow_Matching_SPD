@@ -11,7 +11,7 @@ seed: 42
 
 hydra:
   run:
-    dir: ${paths.log_dir}/${experiment.name}/${now:%Y-%m-%d_%H-%M-%S}
+    dir: ${paths.log_dir}/${experiment.name}/seed_${seed}/${now:%Y-%m-%d_%H-%M-%S}
 
 model:
   dim: 10
@@ -27,10 +27,12 @@ model:
     _target_: backbones.mlp_simple.MLP
     input_dim: 55      # dim*(dim+1)/2 = 10*11/2
     cond_dim: ${model.num_classes}
-    n_layers: 1
+    n_layers: 6
     hidden_dim: 512
     dtype: ${model.dtype}
 
 trainer:
-  max_epochs: 5000
-  check_val_every_n_epoch: 20
+  max_epochs: 10000
+  check_val_every_n_epoch: null
+  val_check_interval: 5000
+  max_steps: 100000

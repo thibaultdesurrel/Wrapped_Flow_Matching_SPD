@@ -73,14 +73,15 @@ def project_on_spd(matrices: np.ndarray, eps: float = 1e-8) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 
-def compute_quality_metrics(X_real: np.ndarray, X_fake: np.ndarray) -> dict:
+def compute_quality_metrics(X_real: np.ndarray, X_fake: np.ndarray, max_samples: int = 5000) -> dict:
     """PRDC metrics between real and generated distributions."""
     # X_real_flat = X_real.reshape(len(X_real), -1)
     # X_fake_flat = X_fake.reshape(len(X_fake), -1)
 
-    min_len = min(len(X_real), len(X_fake))
-    X_real_flat = X_real[:min_len]
-    X_fake_flat = X_fake[:min_len]
+    min_len = min(len(X_real), len(X_fake), max_samples)
+    rng = np.random.default_rng(0)
+    X_real_flat = X_real[rng.choice(len(X_real), min_len, replace=False)]
+    X_fake_flat = X_fake[rng.choice(len(X_fake), min_len, replace=False)]
 
     prdc = compute_prdc(
         real_features=X_real_flat,
@@ -95,8 +96,12 @@ def compute_quality_metrics(X_real: np.ndarray, X_fake: np.ndarray) -> dict:
     }
 
 
-def compute_wasserstein_distance(X_real: np.ndarray, X_fake: np.ndarray) -> dict:
+def compute_wasserstein_distance(X_real: np.ndarray, X_fake: np.ndarray, max_samples: int = 15000) -> dict:
     """Wasserstein-2 distance between real and generated SPD distributions."""
+    if len(X_real) > max_samples or len(X_fake) > max_samples:
+        rng = np.random.default_rng(0)
+        X_real = X_real[rng.choice(len(X_real), min(len(X_real), max_samples), replace=False)]
+        X_fake = X_fake[rng.choice(len(X_fake), min(len(X_fake), max_samples), replace=False)]
     D_cross = (
         pairwise_distance(
             torch.from_numpy(X_real),
@@ -139,11 +144,19 @@ def compute_classification_metrics(
     y_pred = clf.predict(X_test)
     y_proba = clf.predict_proba(X_test)
 
+    multiclass = len(np.unique(y_test)) > 2
+    roc_auc = roc_auc_score(
+        y_test,
+        y_proba if multiclass else y_proba[:, 1],
+        multi_class="ovr" if multiclass else "raise",
+        average="macro" if multiclass else None,
+    )
+    average = "macro" if multiclass else "binary"
     return {
-        "ROC-AUC": roc_auc_score(y_test, y_proba[:, 1]),
-        "Precision": precision_score(y_test, y_pred),
-        "Recall": recall_score(y_test, y_pred),
-        "F1": f1_score(y_test, y_pred),
+        "ROC-AUC": roc_auc,
+        "Precision": precision_score(y_test, y_pred, average=average),
+        "Recall": recall_score(y_test, y_pred, average=average),
+        "F1": f1_score(y_test, y_pred, average=average),
     }
 
 
@@ -152,19 +165,22 @@ def compute_classification_metrics(
 # ---------------------------------------------------------------------------
 
 
-def generate_samples(model, labels: np.ndarray, cfg) -> np.ndarray:
+def generate_samples(model, labels: np.ndarray, cfg, batch_size: int = 20000) -> np.ndarray:
     """Generate SPD matrices for each label using the model's sample_ode."""
     device = next(model.parameters()).device
     dtype = next(model.parameters()).dtype
     num_classes = cfg.model.num_classes
 
-    labels_t = torch.from_numpy(labels).long().to(device)
-    y_onehot = F.one_hot(labels_t, num_classes=num_classes).to(dtype)
+    all_generated = []
+    for start in range(0, len(labels), batch_size):
+        batch_labels = labels[start : start + batch_size]
+        labels_t = torch.from_numpy(batch_labels).long().to(device)
+        y_onehot = F.one_hot(labels_t, num_classes=num_classes).to(dtype)
+        x0 = model.sample_x0(batch_size=len(batch_labels), int_labels=labels_t)
+        generated = model.sample_ode(x0, y_onehot)
+        all_generated.append(generated.cpu())
 
-    x0 = model.sample_x0(batch_size=len(labels), int_labels=labels_t)
-
-    generated = model.sample_ode(x0, y_onehot)
-    return generated.cpu().numpy()
+    return torch.cat(all_generated, dim=0).numpy()
 
 
 # ---------------------------------------------------------------------------

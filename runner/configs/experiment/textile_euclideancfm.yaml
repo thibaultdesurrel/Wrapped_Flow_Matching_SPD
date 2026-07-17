@@ -1,0 +1,38 @@
+# @package _global_
+
+defaults:
+  - override /model: euclidean_cfm
+  - override /datamodule: textile
+
+experiment:
+  name: "textile_euclideancfm"
+
+seed: 42
+
+hydra:
+  run:
+    dir: ${paths.log_dir}/${experiment.name}/seed_${seed}/${now:%Y-%m-%d_%H-%M-%S}
+
+model:
+  dim: 10
+  dtype: float64
+  num_classes: 2
+  lr: 1e-3
+  factor_lr: 0.1
+  warmup_epochs: 10
+  optimizer:
+    _target_: torch.optim.AdamW
+    _partial_: true
+  net:
+    _target_: backbones.mlp_simple.MLP
+    input_dim: 55      # dim*(dim+1)/2 = 10*11/2
+    cond_dim: ${model.num_classes}
+    n_layers: 6
+    hidden_dim: 512
+    dtype: ${model.dtype}
+
+trainer:
+  max_epochs: 10000
+  check_val_every_n_epoch: null
+  val_check_interval: 5000
+  max_steps: 100000

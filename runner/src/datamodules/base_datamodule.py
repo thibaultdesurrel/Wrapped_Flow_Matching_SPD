@@ -59,7 +59,7 @@ class BaseDataModule(LightningDataModule):
         self.recenter = recenter
 
     @staticmethod
-    def _center_and_scale(X_fit, *X_others, scale=True):
+    def _center_and_scale(X_fit, *X_others, scale=False):
         """Center SPD matrices around identity and optionally rescale to unit Fréchet variance.
 
         Fits on X_fit (training set), applies the same transform to all arrays.
@@ -216,7 +216,7 @@ class BaseEEGDataModule(BaseDataModule):
         # Center around identity and rescale to unit Fréchet variance (fit on train only)
         if self.recenter:
             x_train, x_val, x_test = self._center_and_scale(
-                x_train, x_val, x_test, scale=True
+                x_train, x_val, x_test, scale=False
             )
 
         # Compute per-class Riemannian means and variances on training data
