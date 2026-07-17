@@ -22,6 +22,41 @@ def airm_inner_product(P, U, V):
     return torch.diagonal(invP_U @ invP_V, dim1=-2, dim2=-1).sum(dim=-1)
 
 
+def gradient(output, x):
+    """Gradient of `output.sum()` w.r.t. `x`, keeping the graph for higher-order use.
+
+    `output` is a (..., ) tensor obtained from a scalar-per-sample reduction
+    (e.g. <u_t, z>); summing it lets a single autograd.grad call return the
+    per-sample gradients w.r.t. `x`. `create_graph=True` so the result can be
+    differentiated again (the JVP manifold correction below).
+
+    Args:
+        output: tensor that depends differentiably on `x`.
+        x: (..., d, d) input that requires grad.
+
+    Returns:
+        Tensor shaped like `x`: the gradient w.r.t. `x`.
+    """
+    return torch.autograd.grad(
+        output,
+        x,
+        grad_outputs=torch.ones_like(output),
+        create_graph=True,
+        retain_graph=True,
+        only_inputs=True,
+    )[0]
+
+
+def logdetG_SPD(x):
+    """Log-determinant of the AIRM metric tensor at SPD point `x`.
+
+    For the affine-invariant metric on d×d SPD matrices,
+    log det G(x) = -(d + 1) log det x.
+    """
+    d = x.shape[-1]
+    return (-(d + 1) * torch.logdet(x)).to(x)
+
+
 def power_matrix(A, t):
     """Matrix power A^t via eigendecomposition. Compatible with functorch transforms.
 

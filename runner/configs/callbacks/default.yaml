@@ -1,6 +1,12 @@
 defaults:
   - _self_
 
+# EMA of the weights; validation, checkpointing and therefore evaluation all
+# use the averaged model (see src/callbacks/ema.py)
+ema:
+  _target_: callbacks.ema.EMA
+  decay: 0.999
+
 model_checkpoint:
   _target_: lightning.pytorch.callbacks.ModelCheckpoint
   dirpath: ${paths.output_dir}/checkpoints
@@ -14,7 +20,7 @@ model_checkpoint:
 early_stopping:
   _target_: lightning.pytorch.callbacks.EarlyStopping
   monitor: "val/loss"
-  patience: 50
+  patience: 1000000
   mode: "min"
   check_finite: True # when set True, stops training when the monitor becomes NaN or infinite
 

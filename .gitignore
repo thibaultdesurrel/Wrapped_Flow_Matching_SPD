@@ -8,6 +8,7 @@ wheels/
 
 # Virtual environments
 .venv
+venvspd/
 
 .DS_Store
 __pycache__/
@@ -19,3 +20,6 @@ logs_debug
 
 notebooks/
 datasets/
+
+runs_jz
+scripts/irisa

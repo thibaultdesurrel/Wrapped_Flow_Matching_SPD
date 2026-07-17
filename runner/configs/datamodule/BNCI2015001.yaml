@@ -5,3 +5,4 @@ num_workers: 0
 seed: 42
 dtype: float64
 recenter: true
+mne_data_path: null  # set to local MNE_DATA directory to avoid downloading

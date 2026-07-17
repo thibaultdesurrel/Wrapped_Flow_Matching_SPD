@@ -56,6 +56,7 @@ class TextileDataModule(BaseDataModule):
             raise RuntimeError(
                 "Failed to open the data, please download it from the link: "
                 "https://drive.google.com/drive/folders/13IqVNr3HawAjPfjMqjtync3mDd98WGc9?usp=share_link"
+                "cache dir: {}".format(cache_dir)
             )
 
         with h5py.File(filename, "r") as f:

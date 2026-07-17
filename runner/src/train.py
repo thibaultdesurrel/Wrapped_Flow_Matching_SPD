@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import time
-
+import torch
 import hydra
 from omegaconf import DictConfig
 from lightning.pytorch import Trainer, seed_everything
@@ -13,6 +13,11 @@ from lightning.pytorch import Trainer, seed_everything
 from utils import get_pylogger
 
 log = get_pylogger(__name__)
+
+# Opt into Tensor-Core (TF32) float32 matmuls on capable GPUs (e.g. A40).
+# Only affects float32 ops; the float64 SPD computations are unchanged. Mainly
+# silences Lightning's "set_float32_matmul_precision" notice.
+torch.set_float32_matmul_precision("high")
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="train")

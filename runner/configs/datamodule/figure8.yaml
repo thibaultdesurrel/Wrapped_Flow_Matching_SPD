@@ -1,0 +1,7 @@
+_target_: datamodules.synthetic.Figure8DataModule 
+n_samples: 10000
+batch_size: 2048
+num_workers: 0
+seed: ${seed}
+dtype: float64
+recenter: false

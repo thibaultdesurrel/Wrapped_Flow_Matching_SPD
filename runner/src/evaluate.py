@@ -207,10 +207,10 @@ def main():
 
     x_train = datamodule.train_ds.tensors[0].numpy()
     y_train = datamodule.train_ds.tensors[1].numpy()
-    x_val = datamodule.val_ds.tensors[0].numpy()
-    y_val = datamodule.val_ds.tensors[1].numpy()
+    x_test = datamodule.test_ds.tensors[0].numpy()
+    y_test = datamodule.test_ds.tensors[1].numpy()
 
-    log.info(f"Train: {x_train.shape}, Val: {x_val.shape}")
+    log.info(f"Train: {x_train.shape}, Test: {x_test.shape}")
 
     # --- Set prior stats for models that need per-class priors ---
     if hasattr(model, "set_prior_stats"):
@@ -220,17 +220,17 @@ def main():
     log.info("Generating samples...")
     t0 = time.time()
     gen_train = generate_samples(model, y_train, cfg)
-    gen_val = generate_samples(model, y_val, cfg)
+    gen_test = generate_samples(model, y_test, cfg)
     sampling_time = time.time() - t0
     log.info(f"Sampling finished in {sampling_time:.1f}s")
 
     # --- Save generated samples ---
     np.save(output_dir / "generated_train.npy", gen_train)
     np.save(output_dir / "labels_train.npy", y_train)
-    np.save(output_dir / "generated_val.npy", gen_val)
-    np.save(output_dir / "labels_val.npy", y_val)
+    np.save(output_dir / "generated_test.npy", gen_test)
+    np.save(output_dir / "labels_test.npy", y_test)
     np.save(output_dir / "real_train.npy", x_train)
-    np.save(output_dir / "real_val.npy", x_val)
+    np.save(output_dir / "real_test.npy", x_test)
 
     # --- SPD constraint check ---
     log.info("Checking SPD constraints...")
@@ -246,26 +246,26 @@ def main():
             "Projecting onto SPD cone for classification metrics."
         )
         gen_train_clf = project_on_spd(gen_train)
-        gen_val_clf = project_on_spd(gen_val)
+        gen_test_clf = project_on_spd(gen_test)
     else:
         gen_train_clf = gen_train
-        gen_val_clf = gen_val
+        gen_test_clf = gen_test
 
     # --- Quality metrics ---
     log.info("Computing quality metrics (PRDC)...")
     quality_train_gen = compute_quality_metrics(x_train, gen_train_clf)
-    quality_val_gen = compute_quality_metrics(x_val, gen_val_clf)
-    quality_train_val = compute_quality_metrics(x_train, x_val)
+    quality_test_gen = compute_quality_metrics(x_test, gen_test_clf)
+    quality_train_test = compute_quality_metrics(x_train, x_test)
 
     log.info("Computing Wasserstein-2 distances...")
     w2_train_gen = compute_wasserstein_distance(x_train, gen_train_clf)
-    w2_val_gen = compute_wasserstein_distance(x_val, gen_val_clf)
-    w2_train_val = compute_wasserstein_distance(x_train, x_val)
+    w2_test_gen = compute_wasserstein_distance(x_test, gen_test_clf)
+    w2_train_test = compute_wasserstein_distance(x_train, x_test)
 
     quality_rows = [
-        {"Comparison": "Train vs Val (baseline)", **quality_train_val, **w2_train_val},
+        {"Comparison": "Train vs Test (baseline)", **quality_train_test, **w2_train_test},
         {"Comparison": "Train vs Gen", **quality_train_gen, **w2_train_gen},
-        {"Comparison": "Val vs Gen", **quality_val_gen, **w2_val_gen},
+        {"Comparison": "Test vs Gen", **quality_test_gen, **w2_test_gen},
     ]
     df_quality = pd.DataFrame(quality_rows)
     df_quality.to_csv(
@@ -276,14 +276,14 @@ def main():
     # --- Classification metrics ---
     log.info("Computing classification metrics...")
 
-    clf_baseline = compute_classification_metrics(x_train, y_train, x_val, y_val)
-    clf_tstr = compute_classification_metrics(gen_train_clf, y_train, x_val, y_val)
-    clf_trts = compute_classification_metrics(x_train, y_train, gen_val_clf, y_val)
+    clf_baseline_test = compute_classification_metrics(x_train, y_train, x_test, y_test)
+    clf_tstr_test = compute_classification_metrics(gen_train_clf, y_train, x_test, y_test)
+    clf_trts_test = compute_classification_metrics(x_train, y_train, gen_test_clf, y_test)
 
     clf_rows = [
-        {"Comparison": "Real vs Real (baseline)", **clf_baseline},
-        {"Comparison": "Gen vs Real (TSTR)", **clf_tstr},
-        {"Comparison": "Real vs Gen (TRTS)", **clf_trts},
+        {"Comparison": "Real→Test (baseline)", **clf_baseline_test},
+        {"Comparison": "Gen→Test (TSTR)", **clf_tstr_test},
+        {"Comparison": "Real→Gen-Test (TRTS)", **clf_trts_test},
     ]
     df_clf = pd.DataFrame(clf_rows)
     df_clf.to_csv(
@@ -295,7 +295,7 @@ def main():
     constraint_rows = [
         {"Subset": "Real train", **frac_real},
         {"Subset": "Generated train", **frac_gen},
-        {"Subset": "Generated val", **fraction_spd(gen_val)},
+        {"Subset": "Generated test", **fraction_spd(gen_test)},
     ]
     df_constraints = pd.DataFrame(constraint_rows)
     df_constraints.to_csv(

@@ -67,13 +67,22 @@ class WrappedCFM(CFMBase):
         return loss, vt, ut
 
     @torch.no_grad()
-    def sample_ode(self, x0, y):
+    def sample_ode(self, x0, y, nsteps=100):
         was_training = self.net.training
         self.net.eval()
-        solver = RiemannianODESolver(self.net)
+        solver = RiemannianODESolver(self.net, nsteps=nsteps)
 
         results = solver.sample(x0, y)
 
         if was_training:
             self.net.train()
         return results
+
+    def compute_loglikelihood(self, x1, y=None, nsteps=1000, reg_SPD=1e-3):
+        """Manifold log-likelihood via the shared Riemannian CFM estimator.
+
+        WrappedCFM's ``sample_ode`` integrates with the AIRM exponential map, so
+        the log-likelihood is the generic manifold change-of-variables computed
+        in ``CFMBase._riemannian_loglikelihood`` (see there for details).
+        """
+        return self._riemannian_loglikelihood(x1, y, nsteps, reg_SPD)
