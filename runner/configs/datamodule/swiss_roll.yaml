@@ -5,4 +5,4 @@ dim: 2
 num_workers: 0
 seed: ${seed}
 dtype: float64
-recenter: true
+recenter: false

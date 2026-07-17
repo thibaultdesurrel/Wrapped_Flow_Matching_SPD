@@ -12,6 +12,9 @@
 #   ./scripts/run_synthetic_benchmark.sh                                  # full grid
 #   ./scripts/run_synthetic_benchmark.sh figure8_euclideancfm 1 trainer.max_epochs=5   # smoke test
 #
+# Set JOBS_PER_GPU to run more than one job per GPU concurrently, e.g.:
+#   JOBS_PER_GPU=2 ./scripts/run_synthetic_benchmark.sh        # 2 jobs per GPU in parallel
+#
 # After this finishes:
 #   uv run scripts/fetch_results.py          # -> results/all_results.csv
 #   uv run scripts/make_synthetic_table.py   # -> results/synthetic_summary.csv
@@ -54,10 +57,21 @@ if [ "$N_GPUS" -eq 0 ]; then
     N_GPUS=1
 fi
 
+# --- Slots: JOBS_PER_GPU concurrent jobs per GPU (default 1). Each slot maps
+# to one GPU; with JOBS_PER_GPU=2 each GPU id appears in two slots. ---
+JOBS_PER_GPU="${JOBS_PER_GPU:-1}"
+SLOT_GPU=()
+for ((r = 0; r < JOBS_PER_GPU; r++)); do
+    for gpu in "${GPUS[@]}"; do
+        SLOT_GPU+=("$gpu")
+    done
+done
+N_SLOTS=${#SLOT_GPU[@]}
+
 echo "=== Synthetic benchmark ==="
 echo "Experiments: ${EXPERIMENTS[*]}"
 echo "Seeds:       ${SEEDS[*]}"
-echo "GPUs:        ${GPUS[*]}"
+echo "GPUs:        ${GPUS[*]} (${JOBS_PER_GPU} job(s) per GPU, ${N_SLOTS} slot(s) total)"
 
 # Train then evaluate a single (experiment, seed) run. Background job.
 train_and_eval() {
@@ -86,41 +100,39 @@ for exp in "${EXPERIMENTS[@]}"; do
     done
 done
 
-# Continuous scheduler: keep at most one job per GPU running. As soon as a GPU
-# frees up it picks the next job, so GPUs never idle waiting for a slow batch
-# mate (figure8 runs are much shorter than swiss_roll). At most N_GPUS run at
-# once, never the whole grid.
-echo "=== ${#JOBS[@]} jobs total, up to ${N_GPUS} running in parallel. ==="
-# GPU_PID[i] = pid of the job currently on GPUS[i] ("" if free). Indexed (not
-# associative) arrays so this also works on bash 3.2 (macOS).
-GPU_PID=()
-for ((g = 0; g < N_GPUS; g++)); do GPU_PID[$g]=""; done
+# Continuous scheduler: keep at most one job per slot running (same scheme as
+# run_condition_sweep.sh; indexed arrays so it works on bash 3.2 / macOS). As
+# soon as a slot frees up it picks the next job, so GPUs never idle waiting
+# for a slow batch mate (figure8 runs are much shorter than swiss_roll).
+echo "=== ${#JOBS[@]} jobs total, up to ${N_SLOTS} running in parallel. ==="
+SLOT_PID=()
+for ((s = 0; s < N_SLOTS; s++)); do SLOT_PID[$s]=""; done
 
 FAILED=0
 job_idx=0
 running=0
 
 while [ "$job_idx" -lt "${#JOBS[@]}" ] || [ "$running" -gt 0 ]; do
-    # Reap finished jobs and free their GPU.
-    for ((g = 0; g < N_GPUS; g++)); do
-        pid=${GPU_PID[$g]}
+    # Reap finished jobs and free their slot.
+    for ((s = 0; s < N_SLOTS; s++)); do
+        pid=${SLOT_PID[$s]}
         if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
             if ! wait "$pid"; then
                 echo "ERROR: Job with PID $pid failed."
                 FAILED=$((FAILED + 1))
             fi
-            GPU_PID[$g]=""
+            SLOT_PID[$s]=""
             running=$((running - 1))
         fi
     done
 
-    # Launch new jobs onto free GPUs.
-    for ((g = 0; g < N_GPUS; g++)); do
+    # Launch new jobs onto free slots.
+    for ((s = 0; s < N_SLOTS; s++)); do
         [ "$job_idx" -lt "${#JOBS[@]}" ] || break
-        if [ -z "${GPU_PID[$g]}" ]; then
+        if [ -z "${SLOT_PID[$s]}" ]; then
             IFS=":" read -r exp seed <<< "${JOBS[$job_idx]}"
-            train_and_eval "$exp" "$seed" "${GPUS[$g]}" &
-            GPU_PID[$g]=$!
+            train_and_eval "$exp" "$seed" "${SLOT_GPU[$s]}" &
+            SLOT_PID[$s]=$!
             running=$((running + 1))
             job_idx=$((job_idx + 1))
         fi
