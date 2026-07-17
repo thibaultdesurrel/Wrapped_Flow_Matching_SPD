@@ -28,5 +28,7 @@ model:
     dtype: ${model.dtype}
 
 trainer:
-  max_epochs: 5000
-  check_val_every_n_epoch: 20
+  max_epochs: 10000
+  check_val_every_n_epoch: null
+  val_check_interval: 5000
+  max_steps: 100000
