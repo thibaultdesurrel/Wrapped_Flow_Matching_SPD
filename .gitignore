@@ -22,4 +22,6 @@ notebooks/
 datasets/
 
 runs_jz
-scripts/irisa
+runner/scripts/irisa
+rsync.sh
+rsync_back.sh
