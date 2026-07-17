@@ -62,10 +62,10 @@ class DiffeoCFM(CFMBase):
         return loss, vt, ut
 
     @torch.no_grad()
-    def sample_ode(self, x0, y):
+    def sample_ode(self, x0, y, nsteps=100):
         was_training = self.net.training
         self.net.eval()
-        solver = EuclideanODESolver(self.net)
+        solver = EuclideanODESolver(self.net, nsteps=nsteps)
 
         x0_tangent = matrix_log.apply(x0)
         result_tangent = solver.sample(x0_tangent, y)
@@ -121,7 +121,7 @@ class DiffeoCFM(CFMBase):
         D = self.dim * (self.dim + 1) // 2
 
         # Fixed Rademacher probe in tangent (vech) space for Hutchinson trace.
-        eps = (torch.randn(N, D, dtype=self.data_dtype, device=x1.device) < 0)
+        eps = torch.randn(N, D, dtype=self.data_dtype, device=x1.device) < 0
         eps = eps.to(self.data_dtype) * 2.0 - 1.0
 
         def velocity(v, t):
@@ -161,9 +161,7 @@ class DiffeoCFM(CFMBase):
         # Source density: isotropic Gaussian in vech coordinates.
         var = self.sigma_init**2
         source_logp = -0.5 * (
-            D * math.log(2.0 * math.pi)
-            + D * math.log(var)
-            + (v0**2).sum(dim=-1) / var
+            D * math.log(2.0 * math.pi) + D * math.log(var) + (v0**2).sum(dim=-1) / var
         )
 
         # Convert flat tangent density -> AIRM Riemannian volume at the data point.

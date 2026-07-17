@@ -67,10 +67,10 @@ class WrappedCFM(CFMBase):
         return loss, vt, ut
 
     @torch.no_grad()
-    def sample_ode(self, x0, y):
+    def sample_ode(self, x0, y, nsteps=100):
         was_training = self.net.training
         self.net.eval()
-        solver = RiemannianODESolver(self.net)
+        solver = RiemannianODESolver(self.net, nsteps=nsteps)
 
         results = solver.sample(x0, y)
 
